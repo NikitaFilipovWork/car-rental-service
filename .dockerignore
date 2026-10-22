@@ -1,0 +1,9 @@
+venv
+.venv
+.env
+.git
+Dockerfile
+__pycache__/
+*.pyc
+.idea/
+db.sqlite3
