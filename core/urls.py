@@ -4,6 +4,15 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("api/cars/", include("car.urls", namespace="car")),
     path("api-auth/", include("rest_framework.urls")),
+    path("api/users/", include("users.urls", namespace="users")),
+    # path("api/cars/", include("car.urls", namespace="car")),
+    # path("api/rentals/", include("rentals.urls", namespace="rentals")),
+    # path("api/payments/", include("payments.urls", namespace="payments")),
+    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
+    path(
+        "api/docs/",
+        SpectacularSwaggerView.as_view(url_name="schema"),
+        name="swagger-ui",
+    ),
 ]
