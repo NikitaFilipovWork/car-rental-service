@@ -1,0 +1,50 @@
+[
+  {
+    "model": "car.car",
+    "pk": 1,
+    "fields": {
+      "brand": "Toyota",
+      "model": "Corolla",
+      "year": 2020,
+      "fuel_type": "GAS",
+      "daily_rate": "45.00",
+      "inventory": 5
+    }
+  },
+  {
+    "model": "car.car",
+    "pk": 2,
+    "fields": {
+      "brand": "Tesla",
+      "model": "Model 3",
+      "year": 2023,
+      "fuel_type": "ELECTRIC",
+      "daily_rate": "120.00",
+      "inventory": 2
+    }
+  },
+  {
+    "model": "car.car",
+    "pk": 3,
+    "fields": {
+      "brand": "Volkswagen",
+      "model": "Passat",
+      "year": 2019,
+      "fuel_type": "DIESEL",
+      "daily_rate": "55.50",
+      "inventory": 3
+    }
+  },
+  {
+    "model": "car.car",
+    "pk": 4,
+    "fields": {
+      "brand": "Toyota",
+      "model": "Prius",
+      "year": 2021,
+      "fuel_type": "HYBRID",
+      "daily_rate": "60.00",
+      "inventory": 0
+    }
+  }
+]
