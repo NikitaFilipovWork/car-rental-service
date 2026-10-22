@@ -14,3 +14,4 @@ coverage>=7.8
 flake8>=7.2
 
 requests>=2.34.2
+celery[redis]>=5.5
