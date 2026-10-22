@@ -1,4 +1,5 @@
 from django_filters.rest_framework import DjangoFilterBackend
+from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.mixins import (
@@ -19,6 +20,30 @@ from rentals.serializers import (
 from rentals.services import rental_service
 
 
+@extend_schema_view(
+    list=extend_schema(
+        summary="rentals list",
+        description="List rentals with filtering by user and rental status. Customer sees only his own rentals, staff sees all",
+    ),
+    create=extend_schema(
+        summary="rental create",
+        description="Create a new rental",
+    ),
+    retrieve=extend_schema(
+        summary="rental detail",
+        description="Get a rental by id",
+    ),
+    return_rental=extend_schema(
+        summary="rental return by id",
+        description="Return rental car by id. Sets rental's return date = current date. Return available after rental period started",
+        responses={status.HTTP_201_CREATED: RentalDetailViewSerializer},
+    ),
+    cancel_rental=extend_schema(
+        summary="rental cancel by id",
+        description="Cancel rental by id. Cancel available before rental period started",
+        responses={status.HTTP_201_CREATED: RentalDetailViewSerializer},
+    ),
+)
 class RentalsViewSet(
     ListModelMixin, RetrieveModelMixin, CreateModelMixin, GenericViewSet
 ):
