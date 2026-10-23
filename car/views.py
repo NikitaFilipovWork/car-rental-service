@@ -3,8 +3,8 @@ from rest_framework import viewsets
 
 from car.filters import CarFilter
 from car.models import Car
-from car.serializers import CarSerializer
 from car.permissions import IsAdminOrReadOnly
+from car.serializers import CarSerializer
 
 
 class CarViewSet(viewsets.ModelViewSet):

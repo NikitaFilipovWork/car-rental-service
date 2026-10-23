@@ -75,11 +75,9 @@ def return_rental(rental) -> Rental:
         if actual_return_date <= rental.end_date:
             # create normal Payment for rent (car returned in time)
             print("Car returned in time")
-            ...
         else:
             # create Payment + Payment OVERDUE_FEE (car is overdue)
             print("Car returned not in time")
-            ...
         return rental
 
 

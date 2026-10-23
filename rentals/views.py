@@ -12,10 +12,10 @@ from rest_framework.viewsets import GenericViewSet
 
 from rentals.models import Rental
 from rentals.serializers import (
-    RentalListViewSerializer,
-    RentalDetailViewSerializer,
-    RentalCreateViewSerializer,
     EmptySerializer,
+    RentalCreateViewSerializer,
+    RentalDetailViewSerializer,
+    RentalListViewSerializer,
 )
 from rentals.services import rental_service
 
