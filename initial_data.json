@@ -1,0 +1,45 @@
+[
+  {
+    "model": "users.user",
+    "pk": 1,
+    "fields": {
+      "email": "admin@admin.com",
+      "password": "pbkdf2_sha256$1000000$fixtureSaltAdm1$4JpEl8udmxa6hkXKm0tKtR/mQZpDEVxXq+Fx5QQPiwI=",
+      "first_name": "Admin",
+      "last_name": "Admin",
+      "is_staff": true,
+      "is_superuser": true,
+      "is_active": true
+    }
+  },
+  {
+    "model": "users.user",
+    "pk": 2,
+    "fields": {
+      "email": "user1@user.com",
+      "password": "pbkdf2_sha256$1000000$fixtureSaltUsr1$pI8KxQdhLCE3P0T3iu28PEHXBauRJnj4nN9AO2n3v8c=",
+      "first_name": "User",
+      "last_name": "One",
+      "is_staff": false,
+      "is_superuser": false,
+      "is_active": true
+    }
+  },
+
+  {"model": "car.car", "pk": 1,  "fields": {"brand": "Toyota",     "model": "Corolla",  "year": 2021, "fuel_type": "GAS",      "daily_rate": "45.00",  "inventory": 3}},
+  {"model": "car.car", "pk": 2,  "fields": {"brand": "Toyota",     "model": "Prius",    "year": 2022, "fuel_type": "HYBRID",   "daily_rate": "55.00",  "inventory": 2}},
+  {"model": "car.car", "pk": 3,  "fields": {"brand": "Honda",      "model": "Civic",    "year": 2020, "fuel_type": "GAS",      "daily_rate": "42.50",  "inventory": 4}},
+  {"model": "car.car", "pk": 4,  "fields": {"brand": "Volkswagen", "model": "Golf",     "year": 2019, "fuel_type": "DIESEL",   "daily_rate": "40.00",  "inventory": 2}},
+  {"model": "car.car", "pk": 5,  "fields": {"brand": "BMW",        "model": "320d",     "year": 2021, "fuel_type": "DIESEL",   "daily_rate": "80.00",  "inventory": 1}},
+  {"model": "car.car", "pk": 6,  "fields": {"brand": "Tesla",      "model": "Model 3",  "year": 2023, "fuel_type": "ELECTRIC", "daily_rate": "110.00", "inventory": 1}},
+  {"model": "car.car", "pk": 7,  "fields": {"brand": "Nissan",     "model": "Leaf",     "year": 2022, "fuel_type": "ELECTRIC", "daily_rate": "65.00",  "inventory": 2}},
+  {"model": "car.car", "pk": 8,  "fields": {"brand": "Ford",       "model": "Focus",    "year": 2018, "fuel_type": "GAS",      "daily_rate": "35.00",  "inventory": 5}},
+  {"model": "car.car", "pk": 9,  "fields": {"brand": "Hyundai",    "model": "Ioniq",    "year": 2021, "fuel_type": "HYBRID",   "daily_rate": "50.00",  "inventory": 3}},
+  {"model": "car.car", "pk": 10, "fields": {"brand": "Skoda",      "model": "Octavia",  "year": 2020, "fuel_type": "DIESEL",   "daily_rate": "38.00",  "inventory": 4}},
+
+  {"model": "rentals.rental", "pk": 1, "fields": {"car": 1, "user": 2, "start_date": "2026-11-01", "end_date": "2026-11-05", "actual_return_date": null,         "status": "BOOKED",    "price_per_day": "45.00"}},
+  {"model": "rentals.rental", "pk": 2, "fields": {"car": 6, "user": 2, "start_date": "2026-11-10", "end_date": "2026-11-12", "actual_return_date": null,         "status": "BOOKED",    "price_per_day": "110.00"}},
+  {"model": "rentals.rental", "pk": 3, "fields": {"car": 3, "user": 2, "start_date": "2026-09-01", "end_date": "2026-09-05", "actual_return_date": "2026-09-05", "status": "COMPLETED", "price_per_day": "42.50"}},
+  {"model": "rentals.rental", "pk": 4, "fields": {"car": 8, "user": 2, "start_date": "2026-12-01", "end_date": "2026-12-07", "actual_return_date": null,         "status": "CANCELED",  "price_per_day": "35.00"}},
+  {"model": "rentals.rental", "pk": 5, "fields": {"car": 4, "user": 1, "start_date": "2026-10-05", "end_date": "2026-10-15", "actual_return_date": null,         "status": "OVERDUE",   "price_per_day": "40.00"}}
+]
