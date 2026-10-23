@@ -6,7 +6,9 @@ User = get_user_model()
 
 class UserManagerTests(TestCase):
     def test_create_user_success(self):
-        user = User.objects.create_user(email="test@example.com", password="StrongPass123")
+        user = User.objects.create_user(
+            email="test@example.com", password="StrongPass123"
+        )
 
         self.assertEqual(user.email, "test@example.com")
         self.assertTrue(user.check_password("StrongPass123"))
@@ -16,12 +18,16 @@ class UserManagerTests(TestCase):
         self.assertFalse(user.is_superuser)
 
     def test_create_user_has_no_username(self):
-        user = User.objects.create_user(email="test@example.com", password="StrongPass123")
+        user = User.objects.create_user(
+            email="test@example.com", password="StrongPass123"
+        )
 
         self.assertIsNone(user.username)
 
     def test_create_user_normalizes_email_domain(self):
-        user = User.objects.create_user(email="Test@EXAMPLE.com", password="StrongPass123")
+        user = User.objects.create_user(
+            email="Test@EXAMPLE.com", password="StrongPass123"
+        )
 
         self.assertEqual(user.email, "Test@example.com")
 
@@ -30,7 +36,9 @@ class UserManagerTests(TestCase):
             User.objects.create_user(email="", password="StrongPass123")
 
     def test_create_superuser_success(self):
-        admin = User.objects.create_superuser(email="admin@example.com", password="StrongPass123")
+        admin = User.objects.create_superuser(
+            email="admin@example.com", password="StrongPass123"
+        )
 
         self.assertTrue(admin.is_staff)
         self.assertTrue(admin.is_superuser)
