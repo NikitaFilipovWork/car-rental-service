@@ -40,3 +40,24 @@ Data from db will be saved using volumes. If you want to clear it, use it with -
 ```bash
 docker compose down -v
 ```
+
+Telegram Notifications
+
+The project uses Celery and Redis to send Telegram notifications asynchronously.
+
+Features:
+
+Notifications about new rentals.
+
+Daily overdue rental checks at 09:00 (Europe/Kyiv).
+
+Automatic retries of failed notifications every hour.
+
+To enable notifications, create a Telegram bot and add these variables to your .env file:
+
+TELEGRAM_BOT_TOKEN=your_bot_token
+TELEGRAM_CHAT_ID=your_chat_id
+
+Celery worker, Celery Beat, and Redis start automatically with docker compose up --build.
+
+Failed notifications are stored in the database and retried automatically.
