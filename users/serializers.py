@@ -9,7 +9,7 @@ class UserSerializer(serializers.ModelSerializer):
         model = get_user_model()
         fields = ("id", "email", "password", "is_staff")
         read_only_fields = ("is_staff",)
-        extra_kwargs = {
+        extra_kwargs = {  # noqa: RUF012
             "password": {
                 "write_only": True,
                 "min_length": 5,

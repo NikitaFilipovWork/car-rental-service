@@ -13,7 +13,7 @@ class Rental(models.Model):
         OVERDUE = "OVERDUE"
 
     class Meta:
-        constraints = [
+        constraints = [  # noqa: RUF012
             models.CheckConstraint(
                 condition=models.Q(start_date__lte=models.F("end_date")),
                 name="start_date_lte_end_date",
