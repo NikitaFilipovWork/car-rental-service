@@ -74,21 +74,27 @@ class AuthenticatedMeTests(APITestCase):
         self.assertEqual(response.data["email"], "test@example.com")
 
     def test_patch_email(self):
-        response = self.client.patch(ME_URL, {"email": "new@example.com"}, format="json")
+        response = self.client.patch(
+            ME_URL, {"email": "new@example.com"}, format="json"
+        )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.user.refresh_from_db()
         self.assertEqual(self.user.email, "new@example.com")
 
     def test_patch_own_email_unchanged_is_ok(self):
-        response = self.client.patch(ME_URL, {"email": "test@example.com"}, format="json")
+        response = self.client.patch(
+            ME_URL, {"email": "test@example.com"}, format="json"
+        )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_patch_email_taken_by_other_user(self):
         User.objects.create_user(email="other@example.com", password="StrongPass123")
 
-        response = self.client.patch(ME_URL, {"email": "other@example.com"}, format="json")
+        response = self.client.patch(
+            ME_URL, {"email": "other@example.com"}, format="json"
+        )
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.user.refresh_from_db()
@@ -121,10 +127,14 @@ class AuthenticatedMeTests(APITestCase):
         self.client.force_authenticate(user=None)
 
         new_login = self.client.post(
-            TOKEN_URL, {"email": "test@example.com", "password": "NewPass123"}, format="json"
+            TOKEN_URL,
+            {"email": "test@example.com", "password": "NewPass123"},
+            format="json",
         )
         old_login = self.client.post(
-            TOKEN_URL, {"email": "test@example.com", "password": "StrongPass123"}, format="json"
+            TOKEN_URL,
+            {"email": "test@example.com", "password": "StrongPass123"},
+            format="json",
         )
 
         self.assertEqual(new_login.status_code, status.HTTP_200_OK)
