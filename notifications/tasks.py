@@ -44,12 +44,15 @@ def check_overdue_rentals() -> None:
             rental.status = "OVERDUE"
             rental.save(update_fields=["status"])
 
+        days_overdue = (timezone.localdate() - rental.end_date).days
+
         message = (
             f"Status: {rental.status}!!!\n"
             f"Car: {rental.car}\n"
             f"User: {rental.user}\n"
             f"Start date: {rental.start_date}\n"
-            f"Actual return date: {rental.actual_return_date}\n"
+            f"End date: {rental.end_date}\n"
+            f"Days overdue: {days_overdue}"
         )
 
         try:
