@@ -2,6 +2,7 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
+from celery.schedules import crontab
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -154,3 +155,24 @@ SPECTACULAR_SETTINGS = {
 }
 
 AUTH_USER_MODEL = "users.User"
+
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+
+CELERY_BROKER_URL = os.getenv(
+    "CELERY_BROKER_URL",
+    "redis://127.0.0.1:6379/0",
+)
+
+CELERY_TIMEZONE = "Europe/Kyiv"
+
+CELERY_BEAT_SCHEDULE = {
+    "retry-failed-notifications-hourly": {
+        "task": "notifications.tasks.retry_failed_notifications",
+        "schedule": 3600.0,
+    },
+    "check-overdue-rentals-daily": {
+        "task": "notifications.tasks.check_overdue_rentals",
+        "schedule": crontab(hour=9, minute=0),
+    },
+}
