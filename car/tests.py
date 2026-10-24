@@ -195,9 +195,7 @@ class CarValidationTests(APITestCase):
         self.assertIn("year", response.data)
 
     def test_too_old_year_is_invalid(self):
-        response = self.client.post(
-            CARS_URL, valid_payload(year=1800), format="json"
-        )
+        response = self.client.post(CARS_URL, valid_payload(year=1800), format="json")
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("year", response.data)
@@ -230,20 +228,32 @@ class CarValidationTests(APITestCase):
 class CarFilterTests(APITestCase):
     def setUp(self):
         self.corolla = sample_car(
-            brand="Toyota", model="Corolla", year=2020,
-            fuel_type=Car.FuelTypeChoices.GAS, inventory=5,
+            brand="Toyota",
+            model="Corolla",
+            year=2020,
+            fuel_type=Car.FuelTypeChoices.GAS,
+            inventory=5,
         )
         self.prius = sample_car(
-            brand="Toyota", model="Prius", year=2021,
-            fuel_type=Car.FuelTypeChoices.HYBRID, inventory=0,
+            brand="Toyota",
+            model="Prius",
+            year=2021,
+            fuel_type=Car.FuelTypeChoices.HYBRID,
+            inventory=0,
         )
         self.tesla = sample_car(
-            brand="Tesla", model="Model 3", year=2023,
-            fuel_type=Car.FuelTypeChoices.ELECTRIC, inventory=2,
+            brand="Tesla",
+            model="Model 3",
+            year=2023,
+            fuel_type=Car.FuelTypeChoices.ELECTRIC,
+            inventory=2,
         )
         self.passat = sample_car(
-            brand="Volkswagen", model="Passat", year=2019,
-            fuel_type=Car.FuelTypeChoices.DIESEL, inventory=3,
+            brand="Volkswagen",
+            model="Passat",
+            year=2019,
+            fuel_type=Car.FuelTypeChoices.DIESEL,
+            inventory=3,
         )
 
     def get_ids(self, params):
@@ -267,9 +277,7 @@ class CarFilterTests(APITestCase):
         self.assertEqual(self.get_ids({"brand": "volks"}), {self.passat.id})
 
     def test_filter_by_fuel_type(self):
-        self.assertEqual(
-            self.get_ids({"fuel_type": "ELECTRIC"}), {self.tesla.id}
-        )
+        self.assertEqual(self.get_ids({"fuel_type": "ELECTRIC"}), {self.tesla.id})
 
     def test_filter_by_invalid_fuel_type(self):
         response = self.client.get(CARS_URL, {"fuel_type": "WATER"})

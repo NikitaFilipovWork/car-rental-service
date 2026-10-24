@@ -13,9 +13,7 @@ COMPLETED = Rental.RentalStatus.COMPLETED
 CANCELED = Rental.RentalStatus.CANCELED
 
 
-def _check_new_rental_date_overlap(
-    car: Car, start_date: date, end_date: date
-) -> None:
+def _check_new_rental_date_overlap(car: Car, start_date: date, end_date: date) -> None:
     queryset = (
         Car.objects.prefetch_related("rentals")
         .filter(pk=car.pk, rentals__status__in=[BOOKED, OVERDUE])

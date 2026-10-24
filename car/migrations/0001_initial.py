@@ -8,20 +8,46 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='Car',
+            name="Car",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('brand', models.CharField(max_length=255)),
-                ('model', models.CharField(max_length=255)),
-                ('year', models.PositiveIntegerField()),
-                ('fuel_type', models.CharField(choices=[('GAS', 'Gas'), ('DIESEL', 'Diesel'), ('HYBRID', 'Hybrid'), ('ELECTRIC', 'Electric')], default='GAS', max_length=10)),
-                ('daily_rate', models.DecimalField(decimal_places=2, max_digits=10, validators=[django.core.validators.MinValueValidator(0)])),
-                ('inventory', models.PositiveIntegerField()),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("brand", models.CharField(max_length=255)),
+                ("model", models.CharField(max_length=255)),
+                ("year", models.PositiveIntegerField()),
+                (
+                    "fuel_type",
+                    models.CharField(
+                        choices=[
+                            ("GAS", "Gas"),
+                            ("DIESEL", "Diesel"),
+                            ("HYBRID", "Hybrid"),
+                            ("ELECTRIC", "Electric"),
+                        ],
+                        default="GAS",
+                        max_length=10,
+                    ),
+                ),
+                (
+                    "daily_rate",
+                    models.DecimalField(
+                        decimal_places=2,
+                        max_digits=10,
+                        validators=[django.core.validators.MinValueValidator(0)],
+                    ),
+                ),
+                ("inventory", models.PositiveIntegerField()),
             ],
         ),
     ]
