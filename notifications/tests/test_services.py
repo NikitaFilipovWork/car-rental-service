@@ -37,9 +37,7 @@ class TelegramServiceTests(SimpleTestCase):
 
     @patch("notifications.services.requests.post")
     def test_send_telegram_message_connection_error(self, mock_post):
-        mock_post.side_effect = requests.exceptions.ConnectionError(
-            "Connection failed"
-        )
+        mock_post.side_effect = requests.exceptions.ConnectionError("Connection failed")
 
         with self.assertRaises(requests.exceptions.ConnectionError):
             send_telegram_message("Test message")

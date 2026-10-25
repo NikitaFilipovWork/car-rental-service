@@ -8,11 +8,7 @@ from django.utils import timezone
 
 from car.models import Car
 from rentals.models import Rental
-from rentals.services.rental_service import (
-    create_rental,
-    return_rental,
-    cancel_rental
-)
+from rentals.services.rental_service import create_rental, return_rental, cancel_rental
 
 
 class RentalNotificationTests(TestCase):
@@ -30,9 +26,7 @@ class RentalNotificationTests(TestCase):
             inventory=1,
         )
 
-    @patch(
-        "notifications.rental_notifications.send_telegram_notification.delay"
-    )
+    @patch("notifications.rental_notifications.send_telegram_notification.delay")
     def test_create_rental_sends_notification(self, mock_delay):
         start_date = timezone.localdate() + timedelta(days=1)
         end_date = start_date + timedelta(days=3)

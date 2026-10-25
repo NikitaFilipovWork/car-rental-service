@@ -12,6 +12,7 @@ from car.models import Car
 from car.permissions import IsAdminOrReadOnly
 from car.serializers import CarSerializer
 
+
 class CarViewSet(viewsets.ModelViewSet):
     queryset = Car.objects.all()
     serializer_class = CarSerializer
@@ -23,7 +24,7 @@ class CarViewSet(viewsets.ModelViewSet):
 
     def _cached_response(self, request, action, *args, **kwargs):
         version = get_cars_cache_version()
-        key = (f"cars:v{version}:{action}:{request.get_full_path()}")
+        key = f"cars:v{version}:{action}:{request.get_full_path()}"
 
         data = cache.get(key)
         if data is None:

@@ -4,7 +4,6 @@ from rest_framework.exceptions import ValidationError
 from car.models import Car
 from rentals.models import Rental
 
-
 ACTIVE_RENTAL_STATUSES = (
     Rental.RentalStatus.BOOKED,
     Rental.RentalStatus.OVERDUE,
@@ -52,13 +51,9 @@ class CarFilter(django_filters.FilterSet):
         if not start_date and not end_date:
             return queryset
         if not start_date or not end_date:
-            raise ValidationError(
-                "Both start_date and end_date are required."
-            )
+            raise ValidationError("Both start_date and end_date are required.")
         if start_date > end_date:
-            raise ValidationError(
-                "start_date cannot be later than end_date."
-            )
+            raise ValidationError("start_date cannot be later than end_date.")
 
         busy_car_ids = Rental.objects.filter(
             status__in=ACTIVE_RENTAL_STATUSES,
