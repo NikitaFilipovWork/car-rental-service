@@ -54,7 +54,7 @@ class RentalsViewSet(
     @action(detail=True, methods=["post"], url_path="return", url_name="return")
     def return_rental(self, request, *args, **kwargs):
         rental = self.get_object()
-        rental = rental_service.return_rental(rental=rental)
+        rental = rental_service.return_rental(rental=rental, request=request)
         return Response(
             RentalDetailViewSerializer(rental).data, status=status.HTTP_200_OK
         )
@@ -67,7 +67,7 @@ class RentalsViewSet(
     )
     def cancel_rental(self, request, *args, **kwargs):
         rental = self.get_object()
-        rental = rental_service.cancel_rental(rental)
+        rental = rental_service.cancel_rental(rental, request=request)
         return Response(
             RentalDetailViewSerializer(rental).data, status=status.HTTP_200_OK
         )
