@@ -91,21 +91,7 @@ def return_rental(rental) -> Rental:
             print("Car returned not in time")
             ...
 
-    message = (
-        f"🔑 Rental returned #{rental.id}\n"
-        f"Customer: {rental.user}\n"
-        f"Car: {rental.car}\n"
-        f"Start date: {rental.start_date}\n"
-        f"End date: {rental.end_date}\n"
-        f"Actual return date: {rental.actual_return_date}\n"
-        f"Status: {rental.status}"
-    )
-
-    try:
-        send_telegram_notification.delay(message)
-    except OperationalError:
-        FailedNotification.objects.create(message=message)
-
+    notify_rental_returned(rental)
     return rental
 
 
@@ -128,18 +114,6 @@ def cancel_rental(rental: Rental) -> Rental:
         rental.status = CANCELED
         rental.save(update_fields=["status"])
 
-    message = (
-        f"❌ Rental canceled #{rental.id}\n"
-        f"Customer: {rental.user}\n"
-        f"Car: {rental.car}\n"
-        f"Start date: {rental.start_date}\n"
-        f"End date: {rental.end_date}\n"
-        f"Status: {rental.status}"
-    )
-
-    try:
-        send_telegram_notification.delay(message)
-    except OperationalError:
-        FailedNotification.objects.create(message=message)
+    notify_rental_canceled(rental)
 
     return rental
