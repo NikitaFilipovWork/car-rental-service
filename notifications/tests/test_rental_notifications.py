@@ -7,7 +7,12 @@ from django.test import TestCase
 from django.utils import timezone
 
 from car.models import Car
-from rentals.services.rental_service import create_rental
+from rentals.models import Rental
+from rentals.services.rental_service import (
+    create_rental,
+    return_rental,
+    cancel_rental
+)
 
 
 class RentalNotificationTests(TestCase):
@@ -26,7 +31,7 @@ class RentalNotificationTests(TestCase):
         )
 
     @patch(
-        "rentals.services.rental_service.send_telegram_notification.delay"
+        "notifications.rental_notifications.send_telegram_notification.delay"
     )
     def test_create_rental_sends_notification(self, mock_delay):
         start_date = timezone.localdate() + timedelta(days=1)
@@ -40,4 +45,45 @@ class RentalNotificationTests(TestCase):
         )
 
         self.assertIsNotNone(rental.pk)
+        mock_delay.assert_called_once()
+
+    @patch(
+        "notifications.rental_notifications.send_telegram_notification.delay"
+    )
+    def test_return_rental_sends_notification(self, mock_delay):
+        today = timezone.localdate()
+
+        rental = Rental.objects.create(
+            user=self.user,
+            car=self.car,
+            start_date=today - timedelta(days=2),
+            end_date=today + timedelta(days=2),
+            price_per_day=self.car.daily_rate,
+        )
+
+        return_rental(rental)
+
+        rental.refresh_from_db()
+        self.assertEqual(rental.status, Rental.RentalStatus.COMPLETED)
+        self.assertEqual(rental.actual_return_date, today)
+        mock_delay.assert_called_once()
+
+    @patch(
+        "notifications.rental_notifications.send_telegram_notification.delay"
+    )
+    def test_cancel_rental_sends_notification(self, mock_delay):
+        today = timezone.localdate()
+
+        rental = Rental.objects.create(
+            user=self.user,
+            car=self.car,
+            start_date=today + timedelta(days=5),
+            end_date=today + timedelta(days=10),
+            price_per_day=self.car.daily_rate,
+        )
+
+        cancel_rental(rental)
+
+        rental.refresh_from_db()
+        self.assertEqual(rental.status, Rental.RentalStatus.CANCELED)
         mock_delay.assert_called_once()
