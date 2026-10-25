@@ -16,3 +16,4 @@ redis>=5.0
 
 requests>=2.34.2
 celery[redis]>=5.5
+stripe>=11.0

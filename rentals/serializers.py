@@ -2,6 +2,7 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from car.serializers import CarSerializer
+from payments.serializers import PaymentListSerializer
 from rentals.models import Rental
 from users.serializers import UserSerializer
 
@@ -27,6 +28,7 @@ class RentalListViewSerializer(serializers.ModelSerializer):
 class RentalDetailViewSerializer(serializers.ModelSerializer):
     car = CarSerializer(read_only=True)
     user = UserSerializer(read_only=True)
+    payments = PaymentListSerializer(many=True, read_only=True)
 
     class Meta:
         model = Rental
@@ -39,6 +41,7 @@ class RentalDetailViewSerializer(serializers.ModelSerializer):
             "actual_return_date",
             "status",
             "price_per_day",
+            "payments",
         )
 
 

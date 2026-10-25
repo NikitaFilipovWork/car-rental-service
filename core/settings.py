@@ -1,6 +1,7 @@
 import os
 import sys
 from datetime import timedelta
+from decimal import Decimal
 from pathlib import Path
 
 from celery.schedules import crontab
@@ -16,6 +17,9 @@ REDIS_URL = os.getenv("REDIS_URL", "")
 TESTING = "test" in sys.argv
 
 DEBUG = os.getenv("DEBUG", "False") == "True"
+
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
+FINE_MULTIPLIER = Decimal("1.5")
 
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "127.0.0.1,localhost").split(",")
 

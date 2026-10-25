@@ -16,5 +16,6 @@ def api_root(request):
             "rentals": reverse("rentals:rental-list", request=request),
             "schema": reverse("schema", request=request),
             "docs": reverse("swagger-ui", request=request),
+            "payments": reverse("payments:payment-list", request=request),
         }
     )
