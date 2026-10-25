@@ -11,6 +11,7 @@ User = get_user_model()
 class CreateUserView(generics.CreateAPIView):
     serializer_class = UserSerializer
     permission_classes = ()
+    throttle_scope = "register"
 
 
 class ManageUserView(generics.RetrieveUpdateAPIView):

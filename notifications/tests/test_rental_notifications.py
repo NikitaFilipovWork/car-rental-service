@@ -47,9 +47,7 @@ class RentalNotificationTests(TestCase):
         self.assertIsNotNone(rental.pk)
         mock_delay.assert_called_once()
 
-    @patch(
-        "notifications.rental_notifications.send_telegram_notification.delay"
-    )
+    @patch("rentals.services.rental_service.send_telegram_notification.delay")
     def test_return_rental_sends_notification(self, mock_delay):
         today = timezone.localdate()
 
@@ -68,9 +66,7 @@ class RentalNotificationTests(TestCase):
         self.assertEqual(rental.actual_return_date, today)
         mock_delay.assert_called_once()
 
-    @patch(
-        "notifications.rental_notifications.send_telegram_notification.delay"
-    )
+    @patch("rentals.services.rental_service.send_telegram_notification.delay")
     def test_cancel_rental_sends_notification(self, mock_delay):
         today = timezone.localdate()
 

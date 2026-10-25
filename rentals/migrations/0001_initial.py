@@ -12,25 +12,73 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('car', '0001_initial'),
+        ("car", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Rental',
+            name="Rental",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('start_date', models.DateField()),
-                ('end_date', models.DateField()),
-                ('actual_return_date', models.DateField(blank=True, null=True)),
-                ('status', models.CharField(choices=[('BOOKED', 'Booked'), ('COMPLETED', 'Completed'), ('CANCELED', 'Canceled'), ('OVERDUE', 'Overdue')], default='BOOKED', max_length=15)),
-                ('price_per_day', models.DecimalField(decimal_places=2, max_digits=10, validators=[django.core.validators.MinValueValidator(Decimal('0.01'))])),
-                ('car', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='rentals', to='car.car')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='rentals', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("start_date", models.DateField()),
+                ("end_date", models.DateField()),
+                ("actual_return_date", models.DateField(blank=True, null=True)),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("BOOKED", "Booked"),
+                            ("COMPLETED", "Completed"),
+                            ("CANCELED", "Canceled"),
+                            ("OVERDUE", "Overdue"),
+                        ],
+                        default="BOOKED",
+                        max_length=15,
+                    ),
+                ),
+                (
+                    "price_per_day",
+                    models.DecimalField(
+                        decimal_places=2,
+                        max_digits=10,
+                        validators=[
+                            django.core.validators.MinValueValidator(Decimal("0.01"))
+                        ],
+                    ),
+                ),
+                (
+                    "car",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="rentals",
+                        to="car.car",
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="rentals",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'constraints': [models.CheckConstraint(condition=models.Q(('start_date__lte', models.F('end_date'))), name='start_date_lte_end_date')],
+                "constraints": [
+                    models.CheckConstraint(
+                        condition=models.Q(("start_date__lte", models.F("end_date"))),
+                        name="start_date_lte_end_date",
+                    )
+                ],
             },
         ),
     ]

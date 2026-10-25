@@ -72,7 +72,9 @@ class TokenRefreshTests(APITestCase):
         self.refresh = login.data["refresh"]
 
     def test_refresh_returns_new_access_token(self):
-        response = self.client.post(REFRESH_URL, {"refresh": self.refresh}, format="json")
+        response = self.client.post(
+            REFRESH_URL, {"refresh": self.refresh}, format="json"
+        )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn("access", response.data)

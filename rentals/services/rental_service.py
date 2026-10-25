@@ -19,9 +19,7 @@ COMPLETED = Rental.RentalStatus.COMPLETED
 CANCELED = Rental.RentalStatus.CANCELED
 
 
-def _check_new_rental_date_overlap(
-    car: Car, start_date: date, end_date: date
-) -> None:
+def _check_new_rental_date_overlap(car: Car, start_date: date, end_date: date) -> None:
     queryset = (
         Car.objects.prefetch_related("rentals")
         .filter(pk=car.pk, rentals__status__in=[BOOKED, OVERDUE])
@@ -94,7 +92,20 @@ def return_rental(rental) -> Rental:
             print("Car returned not in time")
             ...
 
-    notify_rental_returned(rental)
+    message = (
+        f"🔑 Rental returned #{rental.id}\n"
+        f"Customer: {rental.user}\n"
+        f"Car: {rental.car}\n"
+        f"Start date: {rental.start_date}\n"
+        f"End date: {rental.end_date}\n"
+        f"Actual return date: {rental.actual_return_date}\n"
+        f"Status: {rental.status}"
+    )
+
+    try:
+        send_telegram_notification.delay(message)
+    except OperationalError:
+        FailedNotification.objects.create(message=message)
 
     return rental
 
@@ -118,6 +129,18 @@ def cancel_rental(rental: Rental) -> Rental:
         rental.status = CANCELED
         rental.save(update_fields=["status"])
 
-    notify_rental_canceled(rental)
+    message = (
+        f"❌ Rental canceled #{rental.id}\n"
+        f"Customer: {rental.user}\n"
+        f"Car: {rental.car}\n"
+        f"Start date: {rental.start_date}\n"
+        f"End date: {rental.end_date}\n"
+        f"Status: {rental.status}"
+    )
+
+    try:
+        send_telegram_notification.delay(message)
+    except OperationalError:
+        FailedNotification.objects.create(message=message)
 
     return rental
