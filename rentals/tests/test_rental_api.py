@@ -55,9 +55,7 @@ class RentalListRetrieveTests(APITestCase):
 
     def test_staff_can_filter_by_user_id(self):
         self.client.force_authenticate(self.staff)
-        res = self.client.get(
-            get_rental_list_url(), {"user_id": self.user2.id}
-        )
+        res = self.client.get(get_rental_list_url(), {"user_id": self.user2.id})
         ids = [r["id"] for r in res.data["results"]]
         self.assertEqual(ids, [self.rental_2.id])
 
@@ -121,9 +119,7 @@ class RentalCreateTests(APITestCase):
         self.assertEqual(self.car.inventory, 1)
 
     def test_client_cannot_set_user_status_or_price(self):
-        data = self.payload(
-            user=self.user2.id, status=COMPLETED, price_per_day="0.01"
-        )
+        data = self.payload(user=self.user2.id, status=COMPLETED, price_per_day="0.01")
         res = self.client.post(get_rental_list_url(), data)
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
         rental = Rental.objects.get(pk=res.data["id"])
@@ -132,9 +128,7 @@ class RentalCreateTests(APITestCase):
         self.assertEqual(rental.price_per_day, Decimal("45.00"))
 
     def test_start_date_in_past_rejected(self):
-        data = self.payload(
-            start_date=today_minus_days(1), end_date=today_plus_days(2)
-        )
+        data = self.payload(start_date=today_minus_days(1), end_date=today_plus_days(2))
         res = self.client.post(get_rental_list_url(), data)
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
         self.car.refresh_from_db()
@@ -177,9 +171,7 @@ class RentalCreateTests(APITestCase):
     def test_overlapping_dates_for_same_car_rejected(self):
         start_date = today_plus_days(3)
         end_date = today_plus_days(6)
-        sample_rental(
-            self.user2, self.car, start_date=start_date, end_date=end_date
-        )
+        sample_rental(self.user2, self.car, start_date=start_date, end_date=end_date)
 
         res = self.client.post(
             get_rental_list_url(),
@@ -366,9 +358,7 @@ class RentalReturnTests(APITestCase):
 
     def test_staff_can_return_any_rental(self):
         self.client.force_authenticate(self.staff)
-        rental = sample_rental(
-            self.user, self.car, start_date=today_minus_days(2)
-        )
+        rental = sample_rental(self.user, self.car, start_date=today_minus_days(2))
         res = self.client.post(get_rental_return_url(rental.id))
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)

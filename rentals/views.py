@@ -51,9 +51,7 @@ class RentalsViewSet(
     filter_backends = (DjangoFilterBackend,)
     filterset_fields = ("user_id", "status")
 
-    @action(
-        detail=True, methods=["post"], url_path="return", url_name="return"
-    )
+    @action(detail=True, methods=["post"], url_path="return", url_name="return")
     def return_rental(self, request, *args, **kwargs):
         rental = self.get_object()
         rental = rental_service.return_rental(rental=rental)

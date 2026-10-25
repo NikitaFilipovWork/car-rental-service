@@ -15,7 +15,5 @@ class FailedNotificationTests(TestCase):
         send_telegram_notification("Test notification")
 
         self.assertTrue(
-            FailedNotification.objects.filter(
-                message="Test notification"
-            ).exists()
+            FailedNotification.objects.filter(message="Test notification").exists()
         )

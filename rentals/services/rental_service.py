@@ -8,10 +8,9 @@ from car.models import Car
 from notifications.rental_notifications import (
     notify_rental_created,
     notify_rental_returned,
-    notify_rental_canceled
+    notify_rental_canceled,
 )
 from rentals.models import Rental
-
 
 BOOKED = Rental.RentalStatus.BOOKED
 OVERDUE = Rental.RentalStatus.OVERDUE
