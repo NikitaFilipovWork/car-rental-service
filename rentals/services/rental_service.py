@@ -5,7 +5,11 @@ from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
 from car.models import Car
-from notifications.rental_notifications import notify_rental_created, notify_rental_returned, notify_rental_canceled
+from notifications.rental_notifications import (
+    notify_rental_created,
+    notify_rental_returned,
+    notify_rental_canceled
+)
 from rentals.models import Rental
 
 

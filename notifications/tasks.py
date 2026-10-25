@@ -14,6 +14,7 @@ def send_telegram_notification(message: str) -> None:
     except RequestException:
         FailedNotification.objects.create(message=message)
 
+
 @shared_task()
 def retry_failed_notifications() -> None:
     messages = FailedNotification.objects.all()
@@ -30,6 +31,7 @@ def retry_failed_notifications() -> None:
             message.delete()
         except RequestException:
             continue
+
 
 @shared_task()
 def check_overdue_rentals() -> None:
