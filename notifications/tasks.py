@@ -21,7 +21,7 @@ def retry_failed_notifications() -> None:
         created_at = timezone.localtime(message.created_at)
         formatted_date = created_at.strftime("%d.%m.%Y %H:%M")
         message_for_send = (
-            f"Delayed notification:\n"
+            f"🔄 Delayed notification:\n"
             f"{message.message}\n"
             f"Created at: {formatted_date}"
         )
@@ -47,7 +47,7 @@ def check_overdue_rentals() -> None:
         days_overdue = (timezone.localdate() - rental.end_date).days
 
         message = (
-            f"Status: {rental.status}!!!\n"
+            f"⚠️ Status: {rental.status}!!!\n"
             f"Car: {rental.car}\n"
             f"User: {rental.user}\n"
             f"Start date: {rental.start_date}\n"

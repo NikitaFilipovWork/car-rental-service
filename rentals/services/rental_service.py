@@ -101,7 +101,23 @@ def return_rental(rental) -> Rental:
             # create Payment + Payment OVERDUE_FEE (car is overdue)
             print("Car returned not in time")
             ...
-        return rental
+
+    message = (
+        f"🔑 Rental returned #{rental.id}\n"
+        f"Customer: {rental.user}\n"
+        f"Car: {rental.car}\n"
+        f"Start date: {rental.start_date}\n"
+        f"End date: {rental.end_date}\n"
+        f"Actual return date: {rental.actual_return_date}\n"
+        f"Status: {rental.status}"
+    )
+
+    try:
+        send_telegram_notification.delay(message)
+    except OperationalError:
+        FailedNotification.objects.create(message=message)
+
+    return rental
 
 
 def cancel_rental(rental: Rental) -> Rental:
@@ -122,4 +138,19 @@ def cancel_rental(rental: Rental) -> Rental:
         car.save(update_fields=["inventory"])
         rental.status = CANCELED
         rental.save(update_fields=["status"])
-        return rental
+
+    message = (
+        f"❌ Rental canceled #{rental.id}\n"
+        f"Customer: {rental.user}\n"
+        f"Car: {rental.car}\n"
+        f"Start date: {rental.start_date}\n"
+        f"End date: {rental.end_date}\n"
+        f"Status: {rental.status}"
+    )
+
+    try:
+        send_telegram_notification.delay(message)
+    except OperationalError:
+        FailedNotification.objects.create(message=message)
+
+    return rental
