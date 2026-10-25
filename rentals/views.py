@@ -36,12 +36,12 @@ from rentals.services import rental_service
     return_rental=extend_schema(
         summary="rental return by id",
         description="Return rental car by id. Sets rental's return date = current date. Return available after rental period started",
-        responses={status.HTTP_201_CREATED: RentalDetailViewSerializer},
+        responses={status.HTTP_200_OK: RentalDetailViewSerializer},
     ),
     cancel_rental=extend_schema(
         summary="rental cancel by id",
         description="Cancel rental by id. Cancel available before rental period started",
-        responses={status.HTTP_201_CREATED: RentalDetailViewSerializer},
+        responses={status.HTTP_200_OK: RentalDetailViewSerializer},
     ),
 )
 class RentalsViewSet(
@@ -52,9 +52,7 @@ class RentalsViewSet(
     filterset_fields = ("user_id", "status")
 
     @action(
-        detail=True,
-        methods=["post"],
-        url_path="return",
+        detail=True, methods=["post"], url_path="return", url_name="return"
     )
     def return_rental(self, request, *args, **kwargs):
         rental = self.get_object()
@@ -67,6 +65,7 @@ class RentalsViewSet(
         detail=True,
         methods=["post"],
         url_path="cancel",
+        url_name="cancel",
     )
     def cancel_rental(self, request, *args, **kwargs):
         rental = self.get_object()
