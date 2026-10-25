@@ -41,23 +41,49 @@ Data from db will be saved using volumes. If you want to clear it, use it with -
 docker compose down -v
 ```
 
-Telegram Notifications
+## Telegram Notifications
 
-The project uses Celery and Redis to send Telegram notifications asynchronously.
+The project uses **Celery and Redis** to send Telegram notifications asynchronously.
 
-Features:
+### Features
 
-Notifications about new rentals.
+- Notifications when a rental is created.
+- Notifications when a rental is returned.
+- Notifications when a rental is canceled.
+- Daily checks for overdue rentals at 09:00 (Europe/Kyiv).
+- Automatic retries of failed notifications every hour.
 
-Daily overdue rental checks at 09:00 (Europe/Kyiv).
+### Configuration
 
-Automatic retries of failed notifications every hour.
+Create a Telegram bot using [@BotFather](https://t.me/BotFather) and obtain its API token.
 
-To enable notifications, create a Telegram bot and add these variables to your .env file:
+Add the following variables to your `.env` file:
 
+```env
 TELEGRAM_BOT_TOKEN=your_bot_token
 TELEGRAM_CHAT_ID=your_chat_id
+```
 
-Celery worker, Celery Beat, and Redis start automatically with docker compose up --build.
+The bot must have permission to send messages to the specified chat.
 
-Failed notifications are stored in the database and retried automatically.
+### Background tasks
+
+The following services start automatically with Docker Compose:
+
+- **Redis** — message broker for Celery.
+- **Celery Worker** — processes notification tasks.
+- **Celery Beat** — schedules periodic tasks.
+
+Start the services:
+
+```bash
+docker compose up --build
+```
+
+### Failed notifications
+
+If a notification cannot be queued because the Celery broker is unavailable, it is saved in the database as a `FailedNotification`.
+
+Celery Beat schedules an hourly task to retry saved notifications.
+
+Successfully resent notifications are removed from the database.

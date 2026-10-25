@@ -2,13 +2,16 @@ from datetime import date, timedelta
 
 from django.db import transaction
 from django.utils import timezone
-from kombu.exceptions import OperationalError
 from rest_framework.exceptions import ValidationError
 
 from car.models import Car
-from notifications.models import FailedNotification
+from notifications.rental_notifications import (
+    notify_rental_created,
+    notify_rental_returned,
+    notify_rental_canceled
+)
 from rentals.models import Rental
-from notifications.tasks import send_telegram_notification
+
 
 BOOKED = Rental.RentalStatus.BOOKED
 OVERDUE = Rental.RentalStatus.OVERDUE
@@ -56,20 +59,7 @@ def create_rental(user, car, start_date, end_date) -> Rental:
             price_per_day=car.daily_rate,
         )
 
-    message = (
-        f"🚗 New rental #{rental.id}\n"
-        f"Customer: {rental.user}\n"
-        f"Car: {rental.car}\n"
-        f"Start date: {rental.start_date}\n"
-        f"End date: {rental.end_date}\n"
-        f"Price per day: {rental.price_per_day}\n"
-        f"Status: {rental.status}"
-    )
-
-    try:
-        send_telegram_notification.delay(message)
-    except OperationalError:
-        FailedNotification.objects.create(message=message)
+    notify_rental_created(rental)
 
     return rental
 
