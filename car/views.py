@@ -18,6 +18,8 @@ class CarViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAdminOrReadOnly,)
     filter_backends = (DjangoFilterBackend,)
     filterset_class = CarFilter
+    ordering_fields = ("daily_rate", "year", "brand", "model")
+    search_fields = ("brand", "model")
 
     def _cached_response(self, request, action, *args, **kwargs):
         version = get_cars_cache_version()
