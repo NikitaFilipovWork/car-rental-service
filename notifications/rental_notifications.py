@@ -50,3 +50,15 @@ def notify_rental_canceled(rental) -> None:
     )
 
     _dispatch_notification(message)
+
+
+def notify_payment_successful(payment_id, rental_id, amount) -> None:
+    message = (
+        f"💳 Payment successful!\n"
+        f"Payment ID: {payment_id}\n"
+        f"Rental ID: {rental_id}\n"
+        f"Amount: {amount}\n"
+        f"Status: PAID"
+    )
+
+    _dispatch_notification(message)
