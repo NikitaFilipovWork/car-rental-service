@@ -38,8 +38,9 @@
   {"model": "car.car", "pk": 10, "fields": {"brand": "Skoda",      "model": "Octavia",  "year": 2020, "fuel_type": "DIESEL",   "daily_rate": "38.00",  "inventory": 4}},
 
   {"model": "rentals.rental", "pk": 1, "fields": {"car": 1, "user": 2, "start_date": "2026-11-01", "end_date": "2026-11-05", "actual_return_date": null,         "status": "BOOKED",    "price_per_day": "45.00"}},
-  {"model": "rentals.rental", "pk": 2, "fields": {"car": 6, "user": 2, "start_date": "2026-11-10", "end_date": "2026-11-12", "actual_return_date": null,         "status": "BOOKED",    "price_per_day": "110.00"}},
-  {"model": "rentals.rental", "pk": 3, "fields": {"car": 3, "user": 2, "start_date": "2026-09-01", "end_date": "2026-09-05", "actual_return_date": "2026-09-05", "status": "COMPLETED", "price_per_day": "42.50"}},
-  {"model": "rentals.rental", "pk": 4, "fields": {"car": 8, "user": 2, "start_date": "2026-12-01", "end_date": "2026-12-07", "actual_return_date": null,         "status": "CANCELED",  "price_per_day": "35.00"}},
-  {"model": "rentals.rental", "pk": 5, "fields": {"car": 4, "user": 1, "start_date": "2026-10-05", "end_date": "2026-10-15", "actual_return_date": null,         "status": "OVERDUE",   "price_per_day": "40.00"}}
+  {"model": "rentals.rental", "pk": 2, "fields": {"car": 1, "user": 2, "start_date": "2026-10-01", "end_date": "2026-11-25", "actual_return_date": null,         "status": "BOOKED",    "price_per_day": "45.00"}},
+  {"model": "rentals.rental", "pk": 3, "fields": {"car": 6, "user": 2, "start_date": "2026-11-10", "end_date": "2026-11-12", "actual_return_date": null,         "status": "BOOKED",    "price_per_day": "110.00"}},
+  {"model": "rentals.rental", "pk": 4, "fields": {"car": 3, "user": 2, "start_date": "2026-09-01", "end_date": "2026-09-05", "actual_return_date": "2026-09-05", "status": "COMPLETED", "price_per_day": "42.50"}},
+  {"model": "rentals.rental", "pk": 5, "fields": {"car": 8, "user": 2, "start_date": "2026-12-01", "end_date": "2026-12-07", "actual_return_date": null,         "status": "CANCELED",  "price_per_day": "35.00"}},
+  {"model": "rentals.rental", "pk": 6, "fields": {"car": 4, "user": 1, "start_date": "2026-10-05", "end_date": "2026-10-15", "actual_return_date": null,         "status": "OVERDUE",   "price_per_day": "40.00"}}
 ]

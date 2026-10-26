@@ -153,6 +153,14 @@ REST_FRAMEWORK = {
     },
 }
 
+if TESTING:
+    REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"] = {
+        "anon": "1000/minute",
+        "user": "1000/minute",
+        "login": "100/minute",
+        "register": "100/minute",
+    }
+
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
