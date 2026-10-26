@@ -1,6 +1,7 @@
 from decimal import Decimal
 from unittest.mock import patch
 
+import stripe
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from rest_framework import status
@@ -8,11 +9,14 @@ from rest_framework.test import APITestCase
 
 from payments.helper import create_payment, mark_payment_paid
 from payments.models import Payment
+from rentals.models import Rental
 from rentals.tests.test_base import (
     StripeMockMixin,
     sample_car,
     sample_rental,
     sample_user,
+    today_minus_days,
+    today_plus_days,
 )
 
 PAID = Payment.PaymentStatus.PAID
@@ -56,6 +60,58 @@ class CreatePaymentTests(StripeMockMixin, TestCase):
             kwargs["cancel_url"], "https://rent.example.com/api/payments/cancel/"
         )
         self.assertEqual(payment.status, PENDING)
+
+    @override_settings(FRONTEND_URL="http://localhost:5173/")
+    def test_redirects_to_frontend_when_configured(self):
+        create_payment(self.rental, Payment.PaymentType.RENTAL)
+
+        kwargs = self.stripe_session_create.call_args.kwargs
+        self.assertEqual(
+            kwargs["success_url"],
+            "http://localhost:5173/?session_id={CHECKOUT_SESSION_ID}#/payments/success",
+        )
+        self.assertEqual(
+            kwargs["cancel_url"], "http://localhost:5173/#/payments?canceled=true"
+        )
+
+
+class StripeErrorTests(StripeMockMixin, APITestCase):
+    def setUp(self):
+        super().setUp()
+        self.user = sample_user()
+        self.car = sample_car()
+        self.client.force_authenticate(self.user)
+
+    def test_stripe_error_returns_503_and_keeps_rental_active(self):
+        self.stripe_session_create.side_effect = stripe.AuthenticationError(
+            "No API key provided"
+        )
+        rental = sample_rental(
+            self.user,
+            self.car,
+            start_date=today_minus_days(2),
+            end_date=today_plus_days(1),
+        )
+
+        response = self.client.post(reverse("rentals:rental-return", args=[rental.id]))
+
+        self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
+        rental.refresh_from_db()
+        self.assertEqual(rental.status, Rental.RentalStatus.BOOKED)
+        self.assertEqual(Payment.objects.count(), 0)
+
+    @patch(
+        "payments.helper.stripe.checkout.Session.retrieve",
+        side_effect=stripe.APIConnectionError("Network error"),
+    )
+    def test_success_page_returns_503_when_stripe_is_down(self, mock_retrieve):
+        sample_payment(sample_rental(self.user, self.car))
+
+        response = self.client.get(
+            reverse("payments:payment-success"), {"session_id": "cs_test_1"}
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
 
 
 @patch("payments.helper.notify_payment_successful")

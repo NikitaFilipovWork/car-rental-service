@@ -1,7 +1,6 @@
 from datetime import date, timedelta
 
 from django.db import transaction
-from django.db.models import F
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
@@ -12,6 +11,7 @@ from notifications.rental_notifications import (
     notify_rental_canceled,
 )
 from payments.helper import create_payment
+from rentals.availability import cars_in_use
 from rentals.models import Rental
 from payments.models import Payment
 
@@ -25,21 +25,14 @@ OVERDUE_FEE = Payment.PaymentType.OVERDUE_FEE
 CANCELLATION_FEE = Payment.PaymentType.CANCELLATION_FEE
 
 
-def _check_new_rental_date_overlap(car: Car, start_date: date, end_date: date) -> None:
-    overlapping = (
-        Rental.objects.filter(
-            car=car,
-            status__in=[BOOKED, OVERDUE],
-            start_date__lte=end_date,
-            end_date__gte=start_date,
-        )
-        .order_by("start_date")
-        .first()
-    )
-    if overlapping:
+def _check_car_is_free(car: Car, start_date: date, end_date: date) -> None:
+    """car.inventory is the number of cars of this model in the fleet."""
+    if car.inventory < 1:
+        raise ValidationError("This car is not available for rent")
+    if cars_in_use(car, start_date, end_date) >= car.inventory:
         raise ValidationError(
-            f"This car is reserved from {overlapping.start_date} "
-            f"till {overlapping.end_date}"
+            f"All cars of this model are booked for some of the dates "
+            f"between {start_date} and {end_date}"
         )
 
 
@@ -55,19 +48,11 @@ def _lock_rental(rental: Rental) -> Rental:
     )
 
 
-def _change_inventory(car: Car, delta: int) -> None:
-    Car.objects.filter(pk=car.pk).update(inventory=F("inventory") + delta)
-    car.refresh_from_db(fields=["inventory"])
-
-
 def create_rental(user, car, start_date, end_date) -> Rental:
     with transaction.atomic():
+        # Lock the car so parallel bookings of the same model are checked one by one
         car = _lock_car(car)
-        if car.inventory < 1:
-            raise ValidationError("Car does not have free rental slots")
-        _check_new_rental_date_overlap(car, start_date, end_date)
-
-        _change_inventory(car, -1)
+        _check_car_is_free(car, start_date, end_date)
 
         rental = Rental.objects.create(
             user=user,
@@ -94,8 +79,6 @@ def return_rental(rental: Rental, request=None) -> Rental:
                 "Before rental period started rental can only be canceled"
             )
 
-        _change_inventory(rental.car, 1)
-
         rental.status = COMPLETED
         rental.actual_return_date = actual_return_date
         rental.save(update_fields=["actual_return_date", "status"])
@@ -120,7 +103,6 @@ def cancel_rental(rental: Rental, request=None) -> Rental:
                 "Cancelling rental after rental period has started not allowed"
             )
 
-        _change_inventory(rental.car, 1)
         rental.status = CANCELED
         rental.save(update_fields=["status"])
 

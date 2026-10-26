@@ -1,14 +1,18 @@
 from django.core.cache import cache
+from django.db.models import ProtectedError
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import viewsets
+from drf_spectacular.utils import extend_schema
+from rest_framework import status, viewsets
+from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter, SearchFilter
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 
 from car.cache import CARS_CACHE_TIMEOUT, get_cars_cache_version
 from car.filters import CarFilter
 from car.models import Car
 from car.permissions import IsAdminOrReadOnly
-from car.serializers import CarSerializer
+from car.serializers import CarImageSerializer, CarSerializer
 
 
 class CarViewSet(viewsets.ModelViewSet):
@@ -22,7 +26,8 @@ class CarViewSet(viewsets.ModelViewSet):
 
     def _cached_response(self, request, action, *args, **kwargs):
         version = get_cars_cache_version()
-        key = f"cars:v{version}:{action}:{request.get_full_path()}"
+        # Image URLs are absolute, so the host is part of the key
+        key = f"cars:v{version}:{action}:{request.get_host()}{request.get_full_path()}"
 
         data = cache.get(key)
         if data is None:
@@ -36,3 +41,37 @@ class CarViewSet(viewsets.ModelViewSet):
 
     def retrieve(self, request, *args, **kwargs):
         return self._cached_response(request, "retrieve", *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        try:
+            return super().destroy(request, *args, **kwargs)
+        except ProtectedError:
+            return Response(
+                {"detail": "This car has rentals and cannot be deleted."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+    def get_serializer_class(self):
+        if self.action == "upload_image":
+            return CarImageSerializer
+        return CarSerializer
+
+    @extend_schema(
+        summary="upload car image",
+        description="Staff only. Replaces the current image of the car.",
+        request={"multipart/form-data": CarImageSerializer},
+        responses={status.HTTP_200_OK: CarImageSerializer},
+    )
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path="upload-image",
+        url_name="upload-image",
+        parser_classes=(MultiPartParser, FormParser),
+    )
+    def upload_image(self, request, pk=None):
+        car = self.get_object()
+        serializer = self.get_serializer(car, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)

@@ -1,0 +1,19 @@
+import car.models
+from django.db import migrations, models
+
+
+class Migration(migrations.Migration):
+
+    dependencies = [
+        ("car", "0001_initial"),
+    ]
+
+    operations = [
+        migrations.AddField(
+            model_name="car",
+            name="image",
+            field=models.ImageField(
+                blank=True, null=True, upload_to=car.models.car_image_file_path
+            ),
+        ),
+    ]

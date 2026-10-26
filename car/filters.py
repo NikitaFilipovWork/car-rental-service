@@ -1,13 +1,10 @@
 import django_filters
+from django.db.models import Q
+from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
 from car.models import Car
-from rentals.models import Rental
-
-ACTIVE_RENTAL_STATUSES = (
-    Rental.RentalStatus.BOOKED,
-    Rental.RentalStatus.OVERDUE,
-)
+from rentals.availability import fully_booked_car_ids
 
 
 class CarFilter(django_filters.FilterSet):
@@ -35,9 +32,12 @@ class CarFilter(django_filters.FilterSet):
         )
 
     def filter_available(self, queryset, name, value):
+        """Available now: at least one car of the model is not rented today."""
+        today = timezone.localdate()
+        busy_ids = fully_booked_car_ids(today, today)
         if value:
-            return queryset.filter(inventory__gt=0)
-        return queryset.filter(inventory=0)
+            return queryset.filter(inventory__gt=0).exclude(id__in=busy_ids)
+        return queryset.filter(Q(inventory=0) | Q(id__in=busy_ids))
 
     def skip_filter(self, queryset, name, value):
         return queryset
@@ -55,10 +55,5 @@ class CarFilter(django_filters.FilterSet):
         if start_date > end_date:
             raise ValidationError("start_date cannot be later than end_date.")
 
-        busy_car_ids = Rental.objects.filter(
-            status__in=ACTIVE_RENTAL_STATUSES,
-            start_date__lte=end_date,
-            end_date__gte=start_date,
-        ).values("car_id")
-
-        return queryset.filter(inventory__gt=0).exclude(id__in=busy_car_ids)
+        busy_ids = fully_booked_car_ids(start_date, end_date)
+        return queryset.filter(inventory__gt=0).exclude(id__in=busy_ids)

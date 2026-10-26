@@ -3,6 +3,7 @@ max-line-length = 119
 exclude =
     .venv,
     venv,
+    frontend,
     */migrations/*,
     __pycache__,
     .git
