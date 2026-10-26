@@ -1,5 +1,15 @@
+import pathlib
+import uuid
+
 from django.core.validators import MinValueValidator
 from django.db import models
+from django.utils.text import slugify
+
+
+def car_image_file_path(instance, filename):
+    extension = pathlib.Path(filename).suffix.lower()
+    name = slugify(f"{instance.brand}-{instance.model}")
+    return f"uploads/cars/{name}-{uuid.uuid4()}{extension}"
 
 
 class Car(models.Model):
@@ -23,6 +33,7 @@ class Car(models.Model):
         validators=[MinValueValidator(0)],
     )
     inventory = models.PositiveIntegerField()
+    image = models.ImageField(null=True, blank=True, upload_to=car_image_file_path)
 
     def __str__(self):
         return f"{self.brand} {self.model} ({self.year})"

@@ -233,6 +233,10 @@ Full interactive documentation is in Swagger: <http://localhost:8000/api/docs/>.
 | GET    | `/api/cars/`       | anyone     | List cars |
 | GET    | `/api/cars/{id}/`  | anyone     | Car details |
 | POST, PUT, PATCH, DELETE | `/api/cars/`, `/api/cars/{id}/` | staff | Manage cars |
+| POST   | `/api/cars/{id}/upload-image/` | staff | Upload or replace car image (`multipart/form-data`, field `image`) |
+
+Every car has an `image` field with the full image URL (or `null`).
+Images are stored in `media/uploads/cars/` (in Docker: the `media_data` volume).
 
 Filters and sorting for the list:
 

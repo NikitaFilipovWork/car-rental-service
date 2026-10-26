@@ -1,10 +1,16 @@
+import shutil
+import tempfile
 from datetime import date
 from decimal import Decimal
+from io import BytesIO
 
 from django.core.cache import cache
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import override_settings
 from django.urls import reverse
 from rest_framework import status
+from PIL import Image
 from rest_framework.test import APITestCase
 
 from car.models import Car
@@ -14,6 +20,16 @@ CARS_URL = reverse("car:car-list")
 
 def detail_url(car_id):
     return reverse("car:car-detail", args=[car_id])
+
+
+def image_upload_url(car_id):
+    return reverse("car:car-upload-image", args=[car_id])
+
+
+def sample_image(name="car.jpg"):
+    buffer = BytesIO()
+    Image.new("RGB", (10, 10), color="red").save(buffer, format="JPEG")
+    return SimpleUploadedFile(name, buffer.getvalue(), content_type="image/jpeg")
 
 
 def sample_car(**params):
@@ -326,3 +342,114 @@ class CarFilterTests(APITestCase):
             self.get_ids({"brand": "toyota", "available": "true"}),
             {self.corolla.id},
         )
+
+
+MEDIA_ROOT = tempfile.mkdtemp()
+
+
+@override_settings(MEDIA_ROOT=MEDIA_ROOT)
+class CarImageUploadTests(APITestCase):
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(MEDIA_ROOT, ignore_errors=True)
+        super().tearDownClass()
+
+    def setUp(self):
+        cache.clear()
+        self.staff = get_user_model().objects.create_user(
+            email="staff@test.com", password="testpass123", is_staff=True
+        )
+        self.client.force_authenticate(self.staff)
+        self.car = sample_car()
+
+    def test_staff_uploads_image(self):
+        response = self.client.post(
+            image_upload_url(self.car.id),
+            {"image": sample_image()},
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.car.refresh_from_db()
+        self.assertTrue(self.car.image.name.startswith("uploads/cars/toyota-corolla-"))
+        self.assertTrue(self.car.image.storage.exists(self.car.image.name))
+        self.assertIn("image", response.data)
+
+    def test_image_url_in_list_and_detail(self):
+        self.client.post(
+            image_upload_url(self.car.id),
+            {"image": sample_image()},
+            format="multipart",
+        )
+        cache.clear()
+
+        list_response = self.client.get(CARS_URL)
+        detail_response = self.client.get(detail_url(self.car.id))
+
+        self.assertIn("/media/uploads/cars/", list_response.data["results"][0]["image"])
+        self.assertIn("/media/uploads/cars/", detail_response.data["image"])
+
+    def test_replacing_image_deletes_old_file(self):
+        with self.captureOnCommitCallbacks(execute=True):
+            self.client.post(
+                image_upload_url(self.car.id),
+                {"image": sample_image()},
+                format="multipart",
+            )
+        self.car.refresh_from_db()
+        old_name = self.car.image.name
+
+        with self.captureOnCommitCallbacks(execute=True):
+            self.client.post(
+                image_upload_url(self.car.id),
+                {"image": sample_image()},
+                format="multipart",
+            )
+        self.car.refresh_from_db()
+
+        self.assertNotEqual(self.car.image.name, old_name)
+        self.assertFalse(self.car.image.storage.exists(old_name))
+        self.assertTrue(self.car.image.storage.exists(self.car.image.name))
+
+    def test_upload_not_an_image_rejected(self):
+        response = self.client.post(
+            image_upload_url(self.car.id),
+            {"image": SimpleUploadedFile("car.jpg", b"not an image")},
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.car.refresh_from_db()
+        self.assertFalse(self.car.image)
+
+    def test_upload_without_file_rejected(self):
+        response = self.client.post(
+            image_upload_url(self.car.id), {}, format="multipart"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_regular_user_cannot_upload(self):
+        user = get_user_model().objects.create_user(
+            email="user@test.com", password="testpass123"
+        )
+        self.client.force_authenticate(user)
+
+        response = self.client.post(
+            image_upload_url(self.car.id),
+            {"image": sample_image()},
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_image_cannot_be_set_via_car_update(self):
+        response = self.client.patch(
+            detail_url(self.car.id),
+            {"image": sample_image(), "inventory": 3},
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.car.refresh_from_db()
+        self.assertFalse(self.car.image)

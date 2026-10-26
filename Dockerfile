@@ -5,7 +5,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-RUN addgroup --system app && adduser --system --ingroup app app
+RUN addgroup --system app && adduser --system --ingroup app app \
+    && mkdir -p /app/media && chown app:app /app/media
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip \
