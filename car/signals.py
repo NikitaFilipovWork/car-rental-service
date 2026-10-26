@@ -4,9 +4,12 @@ from django.dispatch import receiver
 
 from car.cache import invalidate_cars_cache
 from car.models import Car
+from rentals.models import Rental
 
 
+# Rentals change which cars are free on given dates, so they reset the cache too
 @receiver([post_save, post_delete], sender=Car)
+@receiver([post_save, post_delete], sender=Rental)
 def car_changed(sender, **kwargs):
     transaction.on_commit(invalidate_cars_cache)
 

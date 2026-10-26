@@ -4,6 +4,8 @@ import stripe
 from django.conf import settings
 from django.db import transaction
 from django.urls import reverse
+from rest_framework import status
+from rest_framework.exceptions import APIException
 
 from notifications.rental_notifications import notify_payment_successful
 from payments.models import Payment
@@ -13,6 +15,17 @@ stripe.api_key = settings.STRIPE_SECRET_KEY
 
 PaymentType = Payment.PaymentType
 PaymentStatus = Payment.PaymentStatus
+
+
+class PaymentServiceError(APIException):
+    status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+    default_detail = "Payment service is unavailable. Please try again later."
+    default_code = "payment_service_unavailable"
+
+
+def _stripe_error(error: stripe.StripeError) -> PaymentServiceError:
+    # Stripe's user_message is safe to show (e.g. "amount too small"), others are not
+    return PaymentServiceError(getattr(error, "user_message", None) or None)
 
 
 def calculate_rental_price(rental: Rental) -> Decimal:
@@ -44,16 +57,43 @@ def _absolute_url(path: str, request=None) -> str:
     return settings.SITE_URL.rstrip("/") + path
 
 
-def create_payment(rental: Rental, payment_type: str, request=None) -> Payment:
-    amount = AMOUNT_CALCULATORS[payment_type](rental).quantize(Decimal("0.01"))
+def _redirect_urls(request=None) -> tuple[str, str]:
+    """Where Stripe sends the user after checkout: the web app or the API."""
+    if settings.FRONTEND_URL:
+        frontend = settings.FRONTEND_URL.rstrip("/")
+        # Query goes before the hash so the web app's hash router keeps working
+        return (
+            f"{frontend}/?session_id={{CHECKOUT_SESSION_ID}}#/payments/success",
+            f"{frontend}/#/payments?canceled=true",
+        )
 
     success_url = (
         _absolute_url(reverse("payments:payment-success"), request)
         + "?session_id={CHECKOUT_SESSION_ID}"
     )
-    cancel_url = _absolute_url(reverse("payments:payment-cancel"), request)
+    return success_url, _absolute_url(reverse("payments:payment-cancel"), request)
 
-    session = stripe.checkout.Session.create(
+
+def create_payment(rental: Rental, payment_type: str, request=None) -> Payment:
+    amount = AMOUNT_CALCULATORS[payment_type](rental).quantize(Decimal("0.01"))
+
+    try:
+        session = _create_checkout_session(rental, payment_type, amount, request)
+    except stripe.StripeError as error:
+        raise _stripe_error(error) from error
+
+    return Payment.objects.create(
+        rental=rental,
+        type=payment_type,
+        money_to_pay=amount,
+        session_id=session.id,
+        session_url=session.url,
+    )
+
+
+def _create_checkout_session(rental, payment_type, amount, request):
+    success_url, cancel_url = _redirect_urls(request)
+    return stripe.checkout.Session.create(
         mode="payment",
         line_items=[
             {
@@ -72,17 +112,12 @@ def create_payment(rental: Rental, payment_type: str, request=None) -> Payment:
         cancel_url=cancel_url,
     )
 
-    return Payment.objects.create(
-        rental=rental,
-        type=payment_type,
-        money_to_pay=amount,
-        session_id=session.id,
-        session_url=session.url,
-    )
-
 
 def is_session_paid(session_id: str) -> bool:
-    session = stripe.checkout.Session.retrieve(session_id)
+    try:
+        session = stripe.checkout.Session.retrieve(session_id)
+    except stripe.StripeError as error:
+        raise _stripe_error(error) from error
     return session.payment_status == "paid"
 
 

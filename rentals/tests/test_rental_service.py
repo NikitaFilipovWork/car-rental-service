@@ -4,6 +4,7 @@ from django.test import TestCase
 from rest_framework.exceptions import ValidationError
 
 from car.models import Car
+from rentals.availability import fully_booked_car_ids
 from rentals.models import Rental
 from rentals.services import rental_service
 from rentals.tests.test_base import (
@@ -27,7 +28,7 @@ class CreateRentalServiceTests(TestCase):
         self.other = sample_user(email="user2@test.com")
         self.car = sample_car(inventory=2, daily_rate=Decimal("70.00"))
 
-    def test_creates_rental_and_decrements_inventory(self):
+    def test_creates_rental_and_keeps_inventory(self):
         rental = rental_service.create_rental(
             user=self.user,
             car=self.car,
@@ -35,7 +36,7 @@ class CreateRentalServiceTests(TestCase):
             end_date=today_plus_days(4),
         )
         self.car.refresh_from_db()
-        self.assertEqual(self.car.inventory, 1)
+        self.assertEqual(self.car.inventory, 2)
         self.assertEqual(rental.status, BOOKED)
         self.assertEqual(rental.price_per_day, Decimal("70.00"))
         self.assertTrue(Rental.objects.filter(pk=rental.id).exists())
@@ -64,13 +65,29 @@ class CreateRentalServiceTests(TestCase):
             )
         self.assertEqual(Rental.objects.count(), 0)
 
-    def test_overlapping_active_rental_blocks_booking(self):
+    def test_overlap_allowed_while_fleet_has_free_car(self):
         sample_rental(
             self.other,
             self.car,
             start_date=today_plus_days(2),
             end_date=today_plus_days(4),
         )
+        rental = rental_service.create_rental(
+            user=self.user,
+            car=self.car,
+            start_date=today_plus_days(3),
+            end_date=today_plus_days(8),
+        )
+        self.assertEqual(rental.status, BOOKED)
+
+    def test_overlap_blocked_when_all_cars_are_rented(self):
+        for _ in range(2):
+            sample_rental(
+                self.other,
+                self.car,
+                start_date=today_plus_days(2),
+                end_date=today_plus_days(4),
+            )
         with self.assertRaises(ValidationError):
             rental_service.create_rental(
                 user=self.user,
@@ -78,9 +95,11 @@ class CreateRentalServiceTests(TestCase):
                 start_date=today_plus_days(3),
                 end_date=today_plus_days(8),
             )
-        self.assertFalse(Rental.objects.filter(pk=self.other.id).exists())
+        self.assertEqual(Rental.objects.filter(user=self.user).count(), 0)
 
     def test_new_rental_covering_existing_one_is_blocked(self):
+        self.car.inventory = 1
+        self.car.save()
         sample_rental(
             self.other,
             self.car,
@@ -139,7 +158,7 @@ class ReturnRentalServiceTests(StripeMockMixin, TestCase):
     def setUp(self):
         super().setUp()
         self.user = sample_user()
-        self.car = sample_car(inventory=0)
+        self.car = sample_car(inventory=1)
 
     def test_return_sets_date_status_and_restores_inventory(self):
         rental = sample_rental(
@@ -178,7 +197,7 @@ class ReturnRentalServiceTests(StripeMockMixin, TestCase):
             with self.assertRaises(ValidationError):
                 rental_service.return_rental(rental)
         self.car.refresh_from_db()
-        self.assertEqual(self.car.inventory, 0)
+        self.assertEqual(self.car.inventory, 1)
 
     def test_return_before_start_raises(self):
         rental = sample_rental(self.user, self.car)
@@ -190,7 +209,7 @@ class CancelRentalServiceTests(StripeMockMixin, TestCase):
     def setUp(self):
         super().setUp()
         self.user = sample_user()
-        self.car = sample_car(inventory=0)
+        self.car = sample_car(inventory=1)
 
     def test_cancel_sets_status_and_restores_inventory(self):
         rental = sample_rental(self.user, self.car)
@@ -204,7 +223,7 @@ class CancelRentalServiceTests(StripeMockMixin, TestCase):
         with self.assertRaises(ValidationError):
             rental_service.cancel_rental(rental)
         self.car.refresh_from_db()
-        self.assertEqual(self.car.inventory, 0)
+        self.assertEqual(self.car.inventory, 1)
         rental.refresh_from_db()
         self.assertEqual(rental.status, BOOKED)
 
@@ -214,4 +233,68 @@ class CancelRentalServiceTests(StripeMockMixin, TestCase):
             with self.assertRaises(ValidationError):
                 rental_service.cancel_rental(rental)
         self.car.refresh_from_db()
-        self.assertEqual(self.car.inventory, 0)
+        self.assertEqual(self.car.inventory, 1)
+
+
+class FleetAvailabilityTests(TestCase):
+    def setUp(self):
+        self.user = sample_user()
+        self.car = sample_car(inventory=2)
+
+    def test_rentals_on_different_days_use_one_car(self):
+        # Two short rentals that do not overlap each other keep one car free
+        sample_rental(
+            self.user,
+            self.car,
+            start_date=today_plus_days(2),
+            end_date=today_plus_days(3),
+        )
+        sample_rental(
+            self.user,
+            self.car,
+            start_date=today_plus_days(5),
+            end_date=today_plus_days(6),
+        )
+        rental = rental_service.create_rental(
+            user=self.user,
+            car=self.car,
+            start_date=today_plus_days(1),
+            end_date=today_plus_days(7),
+        )
+        self.assertEqual(rental.status, BOOKED)
+
+    def test_fully_booked_car_ids(self):
+        free_car = sample_car(brand="Free", inventory=1)
+        for _ in range(2):
+            sample_rental(
+                self.user,
+                self.car,
+                start_date=today_plus_days(2),
+                end_date=today_plus_days(3),
+            )
+
+        busy = fully_booked_car_ids(today_plus_days(3), today_plus_days(4))
+        self.assertEqual(busy, {self.car.id})
+        self.assertNotIn(free_car.id, busy)
+        self.assertEqual(
+            fully_booked_car_ids(today_plus_days(4), today_plus_days(5)), set()
+        )
+
+    def test_overdue_rental_keeps_car_busy_until_returned(self):
+        car = sample_car(brand="Single", inventory=1)
+        sample_rental(
+            self.user,
+            car,
+            start_date=today_minus_days(5),
+            end_date=today_minus_days(2),
+            status=OVERDUE,
+        )
+
+        with self.assertRaises(ValidationError):
+            rental_service.create_rental(
+                user=self.user, car=car, start_date=today(), end_date=today_plus_days(1)
+            )
+        self.assertIn(car.id, fully_booked_car_ids(today(), today()))
+        self.assertNotIn(
+            car.id, fully_booked_car_ids(today_plus_days(1), today_plus_days(2))
+        )

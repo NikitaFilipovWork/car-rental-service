@@ -1,12 +1,14 @@
+import os
 import shutil
 import tempfile
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 from io import BytesIO
 
 from django.core.cache import cache
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.management import call_command
 from django.test import override_settings
 from django.urls import reverse
 from rest_framework import status
@@ -14,6 +16,7 @@ from PIL import Image
 from rest_framework.test import APITestCase
 
 from car.models import Car
+from rentals.models import Rental
 
 CARS_URL = reverse("car:car-list")
 
@@ -158,6 +161,20 @@ class StaffCarApiTests(APITestCase):
         )
         self.client.force_authenticate(self.staff)
         self.car = sample_car()
+
+    def test_delete_car_with_rentals_returns_400(self):
+        Rental.objects.create(
+            user=self.staff,
+            car=self.car,
+            start_date=date.today(),
+            end_date=date.today(),
+            price_per_day=self.car.daily_rate,
+        )
+
+        response = self.client.delete(detail_url(self.car.id))
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertTrue(Car.objects.filter(id=self.car.id).exists())
 
     def test_create_car(self):
         response = self.client.post(CARS_URL, valid_payload(), format="json")
@@ -453,3 +470,81 @@ class CarImageUploadTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.car.refresh_from_db()
         self.assertFalse(self.car.image)
+
+
+@override_settings(MEDIA_ROOT=MEDIA_ROOT)
+class LoadDemoDataCommandTests(APITestCase):
+    def test_loads_cars_with_existing_photos(self):
+        call_command("load_demo_data", verbosity=0)
+
+        cars = Car.objects.all()
+        self.assertEqual(cars.count(), 10)
+        for car in cars:
+            self.assertTrue(car.image.name.startswith("uploads/cars/demo/"))
+            self.assertTrue(car.image.storage.exists(car.image.name), car.image.name)
+
+    def test_running_twice_does_not_duplicate_photos(self):
+        call_command("load_demo_data", verbosity=0)
+        call_command("load_demo_data", verbosity=0)
+
+        car = Car.objects.get(pk=1)
+        files = os.listdir(os.path.dirname(car.image.path))
+        self.assertEqual(len(files), 10)
+
+
+class CarDateAvailabilityTests(APITestCase):
+    def setUp(self):
+        cache.clear()
+        self.user = get_user_model().objects.create_user(
+            email="user@test.com", password="testpass123"
+        )
+        self.tesla = sample_car(brand="Tesla", model="Model 3", inventory=2)
+        self.golf = sample_car(brand="Volkswagen", model="Golf", inventory=1)
+        self.today = date.today()
+
+    def rent(self, car, start_days, end_days, status=Rental.RentalStatus.BOOKED):
+        Rental.objects.create(
+            user=self.user,
+            car=car,
+            start_date=self.today + timedelta(days=start_days),
+            end_date=self.today + timedelta(days=end_days),
+            price_per_day=car.daily_rate,
+            status=status,
+        )
+
+    def get_ids(self, params):
+        cache.clear()
+        response = self.client.get(CARS_URL, params)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        return {car["id"] for car in response.data["results"]}
+
+    def dates(self, start_days, end_days):
+        return {
+            "start_date": self.today + timedelta(days=start_days),
+            "end_date": self.today + timedelta(days=end_days),
+        }
+
+    def test_car_with_free_unit_is_listed_for_dates(self):
+        self.rent(self.tesla, 2, 4)
+
+        self.assertEqual(self.get_ids(self.dates(3, 5)), {self.tesla.id, self.golf.id})
+
+    def test_fully_rented_car_is_hidden_for_dates(self):
+        self.rent(self.tesla, 2, 4)
+        self.rent(self.tesla, 3, 6)
+        self.rent(self.golf, 10, 12)
+
+        self.assertEqual(self.get_ids(self.dates(3, 5)), {self.golf.id})
+        self.assertEqual(self.get_ids(self.dates(7, 8)), {self.tesla.id, self.golf.id})
+
+    def test_canceled_rentals_do_not_take_cars(self):
+        self.rent(self.golf, 2, 4, status=Rental.RentalStatus.CANCELED)
+
+        self.assertIn(self.golf.id, self.get_ids(self.dates(2, 4)))
+
+    def test_available_now_excludes_cars_rented_today(self):
+        self.rent(self.golf, -1, 1)
+        self.rent(self.tesla, -1, 1)
+
+        self.assertEqual(self.get_ids({"available": "true"}), {self.tesla.id})
+        self.assertEqual(self.get_ids({"available": "false"}), {self.golf.id})

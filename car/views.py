@@ -1,4 +1,5 @@
 from django.core.cache import cache
+from django.db.models import ProtectedError
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema
 from rest_framework import status, viewsets
@@ -25,7 +26,8 @@ class CarViewSet(viewsets.ModelViewSet):
 
     def _cached_response(self, request, action, *args, **kwargs):
         version = get_cars_cache_version()
-        key = f"cars:v{version}:{action}:{request.get_full_path()}"
+        # Image URLs are absolute, so the host is part of the key
+        key = f"cars:v{version}:{action}:{request.get_host()}{request.get_full_path()}"
 
         data = cache.get(key)
         if data is None:
@@ -39,6 +41,15 @@ class CarViewSet(viewsets.ModelViewSet):
 
     def retrieve(self, request, *args, **kwargs):
         return self._cached_response(request, "retrieve", *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        try:
+            return super().destroy(request, *args, **kwargs)
+        except ProtectedError:
+            return Response(
+                {"detail": "This car has rentals and cannot be deleted."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
     def get_serializer_class(self):
         if self.action == "upload_image":

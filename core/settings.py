@@ -18,10 +18,13 @@ TESTING = "test" in sys.argv
 
 DEBUG = os.getenv("DEBUG", "False") == "True"
 
-STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
+# .env names it STRIPE_API; docker-compose passes it as STRIPE_SECRET_KEY
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY") or os.getenv("STRIPE_API")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
 # Used to build Stripe redirect URLs when there is no request (e.g. Celery tasks)
 SITE_URL = os.getenv("SITE_URL", "http://localhost:8000")
+# Web app address; when set, Stripe sends users back to its payment pages
+FRONTEND_URL = os.getenv("FRONTEND_URL", "")
 FINE_MULTIPLIER = Decimal("1.5")
 
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "127.0.0.1,localhost").split(",")
@@ -211,6 +214,16 @@ if TESTING:
     PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
     # In-memory broker: .delay() returns instantly instead of waiting for Redis
     CELERY_BROKER_URL = "memory://"
+
+# Fail fast when Redis is down: the notification is saved as FailedNotification
+# instead of blocking the request for ~15 seconds of reconnects
+CELERY_BROKER_CONNECTION_TIMEOUT = 2
+CELERY_TASK_PUBLISH_RETRY_POLICY = {
+    "max_retries": 1,
+    "interval_start": 0,
+    "interval_step": 0.5,
+    "interval_max": 0.5,
+}
 
 CELERY_TIMEZONE = "Europe/Kyiv"
 

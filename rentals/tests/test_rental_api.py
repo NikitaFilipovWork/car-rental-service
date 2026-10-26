@@ -116,8 +116,20 @@ class RentalCreateTests(APITestCase):
         self.assertEqual(rental.price_per_day, Decimal("45.00"))
         self.assertIsNone(rental.actual_return_date)
 
+        # inventory is the fleet size, booking does not change it
         self.car.refresh_from_db()
-        self.assertEqual(self.car.inventory, 1)
+        self.assertEqual(self.car.inventory, 2)
+
+    def test_same_dates_can_be_booked_until_fleet_is_full(self):
+        first = self.client.post(get_rental_list_url(), self.payload())
+        self.client.force_authenticate(self.user2)
+        second = self.client.post(get_rental_list_url(), self.payload())
+        third = self.client.post(get_rental_list_url(), self.payload())
+
+        self.assertEqual(first.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(second.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(third.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(Rental.objects.count(), 2)
 
     def test_client_cannot_set_user_status_or_price(self):
         data = self.payload(user=self.user2.id, status=COMPLETED, price_per_day="0.01")
@@ -169,10 +181,13 @@ class RentalCreateTests(APITestCase):
         res = self.client.post(get_rental_list_url(), self.payload())
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
-    def test_overlapping_dates_for_same_car_rejected(self):
+    def test_overlapping_dates_rejected_when_all_cars_are_rented(self):
         start_date = today_plus_days(3)
         end_date = today_plus_days(6)
-        sample_rental(self.user2, self.car, start_date=start_date, end_date=end_date)
+        for _ in range(self.car.inventory):
+            sample_rental(
+                self.user2, self.car, start_date=start_date, end_date=end_date
+            )
 
         res = self.client.post(
             get_rental_list_url(),
@@ -187,7 +202,7 @@ class RentalCancelTests(StripeMockMixin, APITestCase):
         self.user = sample_user(email="user1@test.com")
         self.other = sample_user(email="user2@test.com")
         self.staff = sample_user_staff(email="admin@test.com")
-        self.car = sample_car(inventory=0)
+        self.car = sample_car(inventory=1)
         self.client.force_authenticate(self.user)
 
     def test_owner_cancels_booked_rental(self):
@@ -224,7 +239,7 @@ class RentalCancelTests(StripeMockMixin, APITestCase):
         rental.refresh_from_db()
         self.car.refresh_from_db()
         self.assertEqual(rental.status, BOOKED)
-        self.assertEqual(self.car.inventory, 0)
+        self.assertEqual(self.car.inventory, 1)
 
     def test_cancel_twice_rejected_and_inventory_not_doubled(self):
         rental = sample_rental(self.user, self.car)
@@ -268,7 +283,7 @@ class RentalReturnTests(StripeMockMixin, APITestCase):
         self.user = sample_user(email="user1@test.com")
         self.other = sample_user(email="user2@test.com")
         self.staff = sample_user_staff(email="admin@test.com")
-        self.car = sample_car(inventory=0)
+        self.car = sample_car(inventory=1)
         self.client.force_authenticate(self.user)
 
     def test_return_in_time(self):
@@ -324,7 +339,7 @@ class RentalReturnTests(StripeMockMixin, APITestCase):
         rental.refresh_from_db()
         self.car.refresh_from_db()
         self.assertEqual(rental.status, BOOKED)
-        self.assertEqual(self.car.inventory, 0)
+        self.assertEqual(self.car.inventory, 1)
 
     def test_return_twice_rejected_and_inventory_not_doubled(self):
         rental = sample_rental(
