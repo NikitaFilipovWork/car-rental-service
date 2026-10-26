@@ -2,7 +2,9 @@
 
 ## Quick start
 
-Install Docker Desktop, open terminal in project directory and execute this command:
+Install Docker Desktop, copy `.env.sample` to `.env` and fill in the values
+(the app also starts without `.env`, using local defaults).
+Then open terminal in project directory and execute this command:
 
 ```bash
 docker compose up --build
@@ -87,3 +89,26 @@ If a notification cannot be queued because the Celery broker is unavailable, it 
 Celery Beat schedules an hourly task to retry saved notifications.
 
 Successfully resent notifications are removed from the database.
+
+## Stripe payments
+
+Payments are created as Stripe Checkout Sessions when a rental is returned
+(rental price and overdue fee) or canceled less than a day before start
+(cancellation fee).
+
+Add the following variables to your `.env` file:
+
+```env
+STRIPE_API=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+SITE_URL=http://localhost:8000
+```
+
+Stripe marks payments as `PAID` / `EXPIRED` through the webhook
+`POST /api/payments/webhook/` (events `checkout.session.completed`,
+`checkout.session.async_payment_succeeded`, `checkout.session.expired`).
+For local development forward events with the Stripe CLI:
+
+```bash
+stripe listen --forward-to localhost:8000/api/payments/webhook/
+```
