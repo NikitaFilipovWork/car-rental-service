@@ -23,7 +23,10 @@ from rentals.services import rental_service
 @extend_schema_view(
     list=extend_schema(
         summary="rentals list",
-        description="List rentals with filtering by user and rental status. Customer sees only his own rentals, staff sees all",
+        description=(
+            "List rentals with filtering by user and rental status. "
+            "Customer sees only his own rentals, staff sees all"
+        ),
     ),
     create=extend_schema(
         summary="rental create",
@@ -35,7 +38,10 @@ from rentals.services import rental_service
     ),
     return_rental=extend_schema(
         summary="rental return by id",
-        description="Return rental car by id. Sets rental's return date = current date. Return available after rental period started",
+        description=(
+            "Return rental car by id. Sets rental's return date = current date. "
+            "Return available after rental period started"
+        ),
         responses={status.HTTP_200_OK: RentalDetailViewSerializer},
     ),
     cancel_rental=extend_schema(

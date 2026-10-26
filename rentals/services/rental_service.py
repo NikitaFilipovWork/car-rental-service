@@ -1,6 +1,7 @@
 from datetime import date, timedelta
 
 from django.db import transaction
+from django.db.models import F
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
@@ -25,36 +26,48 @@ CANCELLATION_FEE = Payment.PaymentType.CANCELLATION_FEE
 
 
 def _check_new_rental_date_overlap(car: Car, start_date: date, end_date: date) -> None:
-    queryset = (
-        Car.objects.prefetch_related("rentals")
-        .filter(pk=car.pk, rentals__status__in=[BOOKED, OVERDUE])
-        .values_list("rentals__start_date", "rentals__end_date")
+    overlapping = (
+        Rental.objects.filter(
+            car=car,
+            status__in=[BOOKED, OVERDUE],
+            start_date__lte=end_date,
+            end_date__gte=start_date,
+        )
+        .order_by("start_date")
+        .first()
     )
-    for pair in queryset:
-        reserved_start_date, reserved_end_date = pair
-        if reserved_start_date <= start_date <= reserved_end_date:
-            raise ValidationError(
-                f"This car is reserved from {start_date} till {min(end_date, reserved_end_date)}"
-            )
-        if reserved_start_date <= end_date <= reserved_end_date:
-            raise ValidationError(
-                f"This car is reserved from {max(start_date, reserved_start_date)} till {end_date}"
-            )
+    if overlapping:
+        raise ValidationError(
+            f"This car is reserved from {overlapping.start_date} "
+            f"till {overlapping.end_date}"
+        )
 
 
-def _check_car_can_be_booked(car: Car) -> None:
-    car = Car.objects.get(pk=car.pk)
-    if car.inventory < 1:
-        raise ValidationError("Car does not have free rental slots")
+def _lock_car(car: Car) -> Car:
+    return Car.objects.select_for_update().get(pk=car.pk)
+
+
+def _lock_rental(rental: Rental) -> Rental:
+    return (
+        Rental.objects.select_for_update()
+        .select_related("car", "user")
+        .get(pk=rental.pk)
+    )
+
+
+def _change_inventory(car: Car, delta: int) -> None:
+    Car.objects.filter(pk=car.pk).update(inventory=F("inventory") + delta)
+    car.refresh_from_db(fields=["inventory"])
 
 
 def create_rental(user, car, start_date, end_date) -> Rental:
     with transaction.atomic():
-        _check_car_can_be_booked(car)
+        car = _lock_car(car)
+        if car.inventory < 1:
+            raise ValidationError("Car does not have free rental slots")
         _check_new_rental_date_overlap(car, start_date, end_date)
 
-        car.inventory -= 1
-        car.save(update_fields=["inventory"])
+        _change_inventory(car, -1)
 
         rental = Rental.objects.create(
             user=user,
@@ -71,6 +84,7 @@ def create_rental(user, car, start_date, end_date) -> Rental:
 
 def return_rental(rental: Rental, request=None) -> Rental:
     with transaction.atomic():
+        rental = _lock_rental(rental)
         if rental.status not in [BOOKED, OVERDUE]:
             raise ValidationError("Only active rentals can be returned")
 
@@ -79,12 +93,10 @@ def return_rental(rental: Rental, request=None) -> Rental:
             raise ValidationError(
                 "Before rental period started rental can only be canceled"
             )
-        car = rental.car
-        car.inventory += 1
-        rental.car.save(update_fields=["inventory"])
+
+        _change_inventory(rental.car, 1)
 
         rental.status = COMPLETED
-
         rental.actual_return_date = actual_return_date
         rental.save(update_fields=["actual_return_date", "status"])
 
@@ -98,6 +110,7 @@ def return_rental(rental: Rental, request=None) -> Rental:
 
 def cancel_rental(rental: Rental, request=None) -> Rental:
     with transaction.atomic():
+        rental = _lock_rental(rental)
         if rental.status != BOOKED:
             raise ValidationError("Can cancel only booked rentals")
 
@@ -107,14 +120,11 @@ def cancel_rental(rental: Rental, request=None) -> Rental:
                 "Cancelling rental after rental period has started not allowed"
             )
 
-        car = rental.car
-        car.inventory += 1
-        car.save(update_fields=["inventory"])
+        _change_inventory(rental.car, 1)
         rental.status = CANCELED
         rental.save(update_fields=["status"])
 
         if cancel_date >= rental.start_date - timedelta(days=1):
-            print("canceled less than 1 day before start of rental")
             create_payment(rental, CANCELLATION_FEE, request)
 
     notify_rental_canceled(rental)

@@ -35,15 +35,15 @@ def retry_failed_notifications() -> None:
 
 @shared_task()
 def check_overdue_rentals() -> None:
-    rentals = Rental.objects.filter(
+    rentals = Rental.objects.select_related("car", "user").filter(
         end_date__lt=timezone.localdate(),
         actual_return_date__isnull=True,
         status__in=[Rental.RentalStatus.BOOKED, Rental.RentalStatus.OVERDUE],
     )
 
     for rental in rentals:
-        if rental.status == "BOOKED":
-            rental.status = "OVERDUE"
+        if rental.status == Rental.RentalStatus.BOOKED:
+            rental.status = Rental.RentalStatus.OVERDUE
             rental.save(update_fields=["status"])
 
         days_overdue = (timezone.localdate() - rental.end_date).days

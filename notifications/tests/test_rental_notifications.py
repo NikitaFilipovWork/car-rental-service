@@ -9,10 +9,12 @@ from django.utils import timezone
 from car.models import Car
 from rentals.models import Rental
 from rentals.services.rental_service import create_rental, return_rental, cancel_rental
+from rentals.tests.test_base import StripeMockMixin
 
 
-class RentalNotificationTests(TestCase):
+class RentalNotificationTests(StripeMockMixin, TestCase):
     def setUp(self):
+        super().setUp()
         self.user = get_user_model().objects.create_user(
             email="rental@example.com",
             password="testpassword123",
