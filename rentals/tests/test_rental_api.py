@@ -5,6 +5,7 @@ from rest_framework.test import APITestCase
 
 from rentals.models import Rental
 from rentals.tests.test_base import (
+    StripeMockMixin,
     sample_user,
     sample_user_staff,
     sample_car,
@@ -180,8 +181,9 @@ class RentalCreateTests(APITestCase):
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
 
 
-class RentalCancelTests(APITestCase):
+class RentalCancelTests(StripeMockMixin, APITestCase):
     def setUp(self):
+        super().setUp()
         self.user = sample_user(email="user1@test.com")
         self.other = sample_user(email="user2@test.com")
         self.staff = sample_user_staff(email="admin@test.com")
@@ -260,8 +262,9 @@ class RentalCancelTests(APITestCase):
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
-class RentalReturnTests(APITestCase):
+class RentalReturnTests(StripeMockMixin, APITestCase):
     def setUp(self):
+        super().setUp()
         self.user = sample_user(email="user1@test.com")
         self.other = sample_user(email="user2@test.com")
         self.staff = sample_user_staff(email="admin@test.com")

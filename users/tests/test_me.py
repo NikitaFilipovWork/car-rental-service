@@ -38,7 +38,7 @@ class MeRealTokenTests(APITestCase):
             {"email": "test@example.com", "password": "StrongPass123"},
             format="json",
         )
-        self.client.credentials(HTTP_AUTHORIZE=f"Bearer {login.data['access']}")
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {login.data['access']}")
 
         response = self.client.get(ME_URL)
 

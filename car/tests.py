@@ -1,6 +1,7 @@
 from datetime import date
 from decimal import Decimal
 
+from django.core.cache import cache
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework import status
@@ -43,6 +44,8 @@ def valid_payload(**params):
 
 class AnonymousCarApiTests(APITestCase):
     def setUp(self):
+        # on_commit cache invalidation never fires inside TestCase
+        cache.clear()
         self.car = sample_car()
 
     def test_list_cars(self):
@@ -95,6 +98,8 @@ class AnonymousCarApiTests(APITestCase):
 
 class RegularUserCarApiTests(APITestCase):
     def setUp(self):
+        # on_commit cache invalidation never fires inside TestCase
+        cache.clear()
         self.user = get_user_model().objects.create_user(
             email="user@test.com", password="testpass123"
         )
@@ -130,6 +135,8 @@ class RegularUserCarApiTests(APITestCase):
 
 class StaffCarApiTests(APITestCase):
     def setUp(self):
+        # on_commit cache invalidation never fires inside TestCase
+        cache.clear()
         self.staff = get_user_model().objects.create_user(
             email="staff@test.com", password="testpass123", is_staff=True
         )
@@ -174,6 +181,8 @@ class StaffCarApiTests(APITestCase):
 
 class CarValidationTests(APITestCase):
     def setUp(self):
+        # on_commit cache invalidation never fires inside TestCase
+        cache.clear()
         self.staff = get_user_model().objects.create_user(
             email="staff@test.com", password="testpass123", is_staff=True
         )
@@ -227,6 +236,8 @@ class CarValidationTests(APITestCase):
 
 class CarFilterTests(APITestCase):
     def setUp(self):
+        # on_commit cache invalidation never fires inside TestCase
+        cache.clear()
         self.corolla = sample_car(
             brand="Toyota",
             model="Corolla",

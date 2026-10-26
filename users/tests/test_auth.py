@@ -3,6 +3,8 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+from users.views import LoginView
+
 User = get_user_model()
 
 TOKEN_URL = reverse("users:token_obtain_pair")
@@ -88,3 +90,8 @@ class TokenRefreshTests(APITestCase):
         response = self.client.post(REFRESH_URL, {}, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class LoginThrottleTests(APITestCase):
+    def test_login_uses_login_throttle_scope(self):
+        self.assertEqual(LoginView.throttle_scope, "login")

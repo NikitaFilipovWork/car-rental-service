@@ -19,6 +19,9 @@ TESTING = "test" in sys.argv
 DEBUG = os.getenv("DEBUG", "False") == "True"
 
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+# Used to build Stripe redirect URLs when there is no request (e.g. Celery tasks)
+SITE_URL = os.getenv("SITE_URL", "http://localhost:8000")
 FINE_MULTIPLIER = Decimal("1.5")
 
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "127.0.0.1,localhost").split(",")
@@ -165,7 +168,7 @@ SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
     "AUTH_HEADER_TYPES": ("Bearer",),
-    "AUTH_HEADER_NAME": "HTTP_AUTHORIZE",
+    "AUTH_HEADER_NAME": "HTTP_AUTHORIZATION",
 }
 
 SPECTACULAR_SETTINGS = {
@@ -199,6 +202,12 @@ CELERY_BROKER_URL = os.getenv(
     "CELERY_BROKER_URL",
     "redis://127.0.0.1:6379/0",
 )
+
+if TESTING:
+    # Default PBKDF2 makes every create_user/login in tests take seconds
+    PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
+    # In-memory broker: .delay() returns instantly instead of waiting for Redis
+    CELERY_BROKER_URL = "memory://"
 
 CELERY_TIMEZONE = "Europe/Kyiv"
 

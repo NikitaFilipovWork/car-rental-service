@@ -1,3 +1,5 @@
+import stripe
+from django.conf import settings
 from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -5,8 +7,7 @@ from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from notifications.rental_notifications import notify_payment_successful
-from payments.helper import is_session_paid
+from payments.helper import handle_stripe_event, is_session_paid, mark_payment_paid
 from payments.models import Payment
 from payments.serializers import PaymentDetailSerializer, PaymentListSerializer
 
@@ -26,8 +27,10 @@ class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
     filterset_fields = ("status", "type")
 
     def get_queryset(self):
-        queryset = super().get_queryset().select_related(
-            "rental", "rental__car", "rental__user"
+        queryset = (
+            super()
+            .get_queryset()
+            .select_related("rental", "rental__car", "rental__user")
         )
         if not self.request.user.is_staff:
             queryset = queryset.filter(rental__user=self.request.user)
@@ -77,12 +80,7 @@ class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if payment.status != Payment.PaymentStatus.PAID:
-            payment.status = Payment.PaymentStatus.PAID
-            payment.save(update_fields=["status"])
-            notify_payment_successful(
-                payment.id, payment.rental_id, payment.money_to_pay
-            )
+        payment = mark_payment_paid(payment.session_id)
 
         return Response(PaymentDetailSerializer(payment).data)
 
@@ -107,3 +105,37 @@ class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
                 )
             }
         )
+
+    @extend_schema(
+        summary="Stripe webhook",
+        description=(
+            "Stripe calls this endpoint about Checkout Session events. "
+            "Marks payments as PAID or EXPIRED even if the user never "
+            "returned to the success page."
+        ),
+        request=None,
+        responses={status.HTTP_200_OK: None},
+    )
+    @action(
+        detail=False,
+        methods=["post"],
+        url_path="webhook",
+        url_name="webhook",
+        permission_classes=(AllowAny,),
+        authentication_classes=(),
+        throttle_classes=(),
+    )
+    def webhook(self, request):
+        signature = request.headers.get("Stripe-Signature", "")
+        try:
+            event = stripe.Webhook.construct_event(
+                request.body, signature, settings.STRIPE_WEBHOOK_SECRET
+            )
+        except (ValueError, stripe.SignatureVerificationError):
+            return Response(
+                {"detail": "Invalid Stripe webhook"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        handle_stripe_event(event)
+        return Response(status=status.HTTP_200_OK)

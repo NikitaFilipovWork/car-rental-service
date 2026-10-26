@@ -1,5 +1,7 @@
 from datetime import timedelta
 from decimal import Decimal
+from itertools import count
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.urls import reverse
@@ -92,3 +94,26 @@ def get_rental_return_url(pk):
 
 def get_rental_cancel_url(pk):
     return reverse("rentals:rental-cancel", kwargs={"pk": pk})
+
+
+class StripeMockMixin:
+    """Replace Stripe Checkout Session creation with a local fake."""
+
+    def setUp(self):
+        super().setUp()
+        session_ids = count(1)
+
+        def fake_session(**kwargs):
+            session_id = f"cs_test_{next(session_ids)}"
+            return type(
+                "Session",
+                (),
+                {"id": session_id, "url": f"https://stripe.test/{session_id}"},
+            )()
+
+        patcher = patch(
+            "payments.helper.stripe.checkout.Session.create",
+            side_effect=fake_session,
+        )
+        self.stripe_session_create = patcher.start()
+        self.addCleanup(patcher.stop)
